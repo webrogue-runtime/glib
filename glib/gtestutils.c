@@ -25,7 +25,9 @@
 
 #include <sys/types.h>
 #ifdef G_OS_UNIX
+#ifndef __wasi__
 #include <sys/wait.h>
+#endif
 #include <sys/time.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -40,7 +42,8 @@
 #ifdef HAVE_SYS_PRCTL_H
 #include <sys/prctl.h>
 #endif
-#ifdef HAVE_SYS_RESOURCE_H
+
+#if defined(HAVE_SYS_RESOURCE_H) && !defined(__wasi__)
 #include <sys/resource.h>
 #endif
 #ifdef G_OS_WIN32
@@ -49,7 +52,9 @@
 #include <windows.h>
 #endif
 #include <errno.h>
+#ifndef __wasi__
 #include <signal.h>
+#endif
 #ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
 #endif /* HAVE_SYS_SELECT_H */
@@ -1166,7 +1171,7 @@ g_test_log (GTestLogType lbit,
 void
 g_test_disable_crash_reporting (void)
 {
-#ifdef HAVE_SYS_RESOURCE_H
+#if defined(HAVE_SYS_RESOURCE_H) && !defined(__wasi__)
   struct rlimit limit = { 0, 0 };
 
   (void) setrlimit (RLIMIT_CORE, &limit);
@@ -3681,7 +3686,7 @@ test_trap_clear (void)
   g_clear_pointer (&test_trap_last_stderr, g_free);
 }
 
-#ifdef G_OS_UNIX
+#if defined(G_OS_UNIX) && !defined(__wasi__)
 
 static int
 safe_dup2 (int fd1,
@@ -3737,6 +3742,8 @@ child_timeout (gpointer user_data)
 
 #ifdef G_OS_WIN32
   TerminateProcess (data->pid, G_TEST_STATUS_TIMED_OUT);
+#elif defined(__wasi__)
+  abort();
 #else
   kill (data->pid, SIGALRM);
 #endif
@@ -3932,7 +3939,7 @@ gboolean
 g_test_trap_fork (guint64        usec_timeout,
                   GTestTrapFlags test_trap_flags)
 {
-#ifdef G_OS_UNIX
+#if defined(G_OS_UNIX) && !defined(__wasi__)
   int stdout_pipe[2] = { -1, -1 };
   int stderr_pipe[2] = { -1, -1 };
   int errsv;
@@ -4227,7 +4234,7 @@ g_test_subprocess (void)
 gboolean
 g_test_trap_has_passed (void)
 {
-#ifdef G_OS_UNIX
+#if defined(G_OS_UNIX) && !defined(__wasi__)
   return (WIFEXITED (test_trap_last_status) &&
       WEXITSTATUS (test_trap_last_status) == 0);
 #else
@@ -4247,7 +4254,7 @@ g_test_trap_has_passed (void)
 gboolean
 g_test_trap_reached_timeout (void)
 {
-#ifdef G_OS_UNIX
+#if defined(G_OS_UNIX) && !defined(__wasi__)
   return (WIFSIGNALED (test_trap_last_status) &&
       WTERMSIG (test_trap_last_status) == SIGALRM);
 #else
@@ -4260,7 +4267,7 @@ log_child_output (const gchar *process_id)
 {
   gchar *escaped;
 
-#ifdef G_OS_UNIX
+#if defined(G_OS_UNIX) && !defined(__wasi__)
   if (WIFEXITED (test_trap_last_status)) /* normal exit */
     {
       if (WEXITSTATUS (test_trap_last_status) == 0)

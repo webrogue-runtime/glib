@@ -66,7 +66,9 @@
 #endif
 #endif
 
+#ifndef __wasi__
 #include <signal.h>
+#endif
 #include <sys/types.h>
 #include <time.h>
 #include <stdlib.h>
@@ -405,7 +407,7 @@ static GRWLock source_destroy_lock;
 
 static GMainContext *glib_worker_context;
 
-#ifndef G_OS_WIN32
+#if !defined(G_OS_WIN32) && !defined(__wasi__)
 
 
 /* UNIX signals work by marking one of these variables then waking the
@@ -5725,7 +5727,7 @@ g_child_watch_check (GSource *source)
 static void
 g_child_watch_finalize (GSource *source)
 {
-#ifndef G_OS_WIN32
+#if !defined(G_OS_WIN32) && !defined(__wasi__)
   GChildWatchSource *child_watch_source = (GChildWatchSource *) source;
 
   if (child_watch_source->poll.fd >= 0)
@@ -5781,6 +5783,7 @@ wake_source (GSource *source)
     g_main_context_unref (context);
 }
 
+#ifndef __wasi__
 static void
 dispatch_unix_signals_unlocked (void)
 {
@@ -5844,13 +5847,16 @@ dispatch_unix_signals_unlocked (void)
     }
 
 }
+#endif
 
 static void
 dispatch_unix_signals (void)
 {
+#ifndef __wasi__
   G_LOCK(unix_signal_lock);
   dispatch_unix_signals_unlocked ();
   G_UNLOCK(unix_signal_lock);
+#endif
 }
 
 static gboolean
@@ -5898,6 +5904,7 @@ g_unix_signal_watch_dispatch (GSource    *source,
   return again;
 }
 
+#ifndef __wasi__
 static void
 ref_unix_signal_handler_unlocked (int signum)
 {
@@ -5934,7 +5941,9 @@ unref_unix_signal_handler_unlocked (int signum)
       sigaction (signum, &action, NULL);
     }
 }
+#endif
 
+#ifndef __wasi__
 /* Return a const string to avoid allocations. We lose precision in the case the
  * @signum is unrecognised, but that’ll do. */
 static const gchar *
@@ -5996,10 +6005,14 @@ signum_to_string (int signum)
     }
 #undef SIGNAL
 }
+#endif
 
 GSource *
 _g_main_create_unix_signal_watch (int signum)
 {
+#ifdef __wasi__
+  abort();
+#else
   GSource *source;
   GUnixSignalWatchSource *unix_signal_source;
 
@@ -6019,8 +6032,10 @@ _g_main_create_unix_signal_watch (int signum)
   G_UNLOCK (unix_signal_lock);
 
   return source;
+#endif
 }
 
+#ifndef __wasi__
 static void
 g_unix_signal_watch_finalize (GSource    *source)
 {
@@ -6033,6 +6048,7 @@ g_unix_signal_watch_finalize (GSource    *source)
   unix_signal_watches = g_slist_remove (unix_signal_watches, source);
   G_UNLOCK (unix_signal_lock);
 }
+#endif
 
 #endif /* G_OS_WIN32 */
 
@@ -6041,6 +6057,9 @@ g_child_watch_dispatch (GSource    *source,
 			GSourceFunc callback,
 			gpointer    user_data)
 {
+#ifdef __wasi__
+  abort();
+#else
   GChildWatchSource *child_watch_source;
   GChildWatchFunc child_watch_callback = (GChildWatchFunc) callback;
   int wait_status;
@@ -6172,9 +6191,10 @@ g_child_watch_dispatch (GSource    *source,
 
   /* We never keep a child watch source around as the child is gone */
   return FALSE;
+#endif
 }
 
-#ifndef G_OS_WIN32
+#if !defined(G_OS_WIN32) && !defined(__wasi__)
 
 static void
 g_unix_signal_handler (int signum)
@@ -6250,6 +6270,9 @@ g_unix_signal_handler (int signum)
 GSource *
 g_child_watch_source_new (GPid pid)
 {
+#ifdef __wasi__
+  abort();
+#else
   GSource *source;
   GChildWatchSource *child_watch_source;
 #ifdef HAVE_PIDFD
@@ -6311,6 +6334,7 @@ g_child_watch_source_new (GPid pid)
 #endif /* !G_OS_WIN32 */
 
   return source;
+#endif
 }
 
 /**
@@ -6763,7 +6787,7 @@ glib_worker_main (gpointer data)
     {
       g_main_context_iteration (glib_worker_context, TRUE);
 
-#ifdef G_OS_UNIX
+#if defined(G_OS_UNIX) && !defined(__wasi__)
       if (g_atomic_int_get (&any_unix_signal_pending))
         dispatch_unix_signals ();
 #endif
@@ -6780,7 +6804,7 @@ g_get_worker_context (void)
   if (g_once_init_enter (&initialised))
     {
       /* mask all signals in the worker thread */
-#ifdef G_OS_UNIX
+#if defined(G_OS_UNIX) && !defined(__wasi__) 
       sigset_t prev_mask;
       sigset_t all;
 
@@ -6789,7 +6813,7 @@ g_get_worker_context (void)
 #endif
       glib_worker_context = g_main_context_new ();
       g_thread_new ("gmain", glib_worker_main, NULL);
-#ifdef G_OS_UNIX
+#if defined(G_OS_UNIX) && !defined(__wasi__) 
       pthread_sigmask (SIG_SETMASK, &prev_mask, NULL);
 #endif
       g_once_init_leave (&initialised, TRUE);

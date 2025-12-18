@@ -53,7 +53,9 @@
 
 #include <stdlib.h>
 #include <string.h>
+#ifndef __wasi__
 #include <signal.h>
+#endif
 
 #include "gslice.h"
 #include "gbacktrace.h"

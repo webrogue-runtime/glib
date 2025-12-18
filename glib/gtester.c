@@ -26,9 +26,13 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
+#ifndef __wasi__
 #include <sys/wait.h>
+#endif
 #include <errno.h>
+#ifndef __wasi__
 #include <signal.h>
+#endif
 
 /* the read buffer size in bytes */
 #define READ_BUFFER_SIZE 4096
@@ -96,7 +100,9 @@ test_log_printfe (const char *format,
 static void
 terminate (void)
 {
+#ifndef __wasi__
   kill (getpid(), SIGTERM);
+#endif
   g_abort();
 }
 

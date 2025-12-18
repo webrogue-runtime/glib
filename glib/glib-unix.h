@@ -29,7 +29,9 @@
  */
 #include <unistd.h>
 #include <errno.h>
+#ifndef __wasi__
 #include <sys/wait.h>
+#endif
 #include <stdlib.h>
 #include <fcntl.h>
 

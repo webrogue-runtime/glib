@@ -1021,6 +1021,9 @@ typedef struct
 static gboolean
 g_subprocess_actually_send_signal (gpointer user_data)
 {
+#ifdef __wasi__
+ abort();
+#else
   SignalRecord *signal_record = user_data;
 
   /* The pid is set to zero from the worker thread as well, so we don't
@@ -1036,6 +1039,7 @@ g_subprocess_actually_send_signal (gpointer user_data)
   g_slice_free (SignalRecord, signal_record);
 
   return FALSE;
+#endif
 }
 
 static void
@@ -1106,6 +1110,9 @@ g_subprocess_send_signal (GSubprocess *subprocess,
 void
 g_subprocess_force_exit (GSubprocess *subprocess)
 {
+#ifdef __wasi__
+  abort();
+#else
   g_return_if_fail (G_IS_SUBPROCESS (subprocess));
 
 #ifdef G_OS_UNIX
@@ -1114,6 +1121,7 @@ g_subprocess_force_exit (GSubprocess *subprocess)
   g_mutex_lock (&subprocess->pending_waits_lock);
   TerminateProcess (subprocess->pid, 1);
   g_mutex_unlock (&subprocess->pending_waits_lock);
+#endif
 #endif
 }
 
@@ -1185,7 +1193,7 @@ g_subprocess_get_successful (GSubprocess *subprocess)
 
   g_return_val_if_fail (pid == 0, FALSE);
 
-#ifdef G_OS_UNIX
+#if defined(G_OS_UNIX) && !defined(__wasi__)
   return WIFEXITED (status) && WEXITSTATUS (status) == 0;
 #else
   return status == 0;
@@ -1223,7 +1231,7 @@ g_subprocess_get_if_exited (GSubprocess *subprocess)
 
   g_return_val_if_fail (pid == 0, FALSE);
 
-#ifdef G_OS_UNIX
+#if defined(G_OS_UNIX) && !defined(__wasi__)
   return WIFEXITED (status);
 #else
   return TRUE;
@@ -1262,7 +1270,7 @@ g_subprocess_get_exit_status (GSubprocess *subprocess)
 
   g_return_val_if_fail (pid == 0, 1);
 
-#ifdef G_OS_UNIX
+#if defined(G_OS_UNIX) && !defined(__wasi__)
   g_return_val_if_fail (WIFEXITED (status), 1);
 
   return WEXITSTATUS (status);
@@ -1301,7 +1309,7 @@ g_subprocess_get_if_signaled (GSubprocess *subprocess)
 
   g_return_val_if_fail (pid == 0, FALSE);
 
-#ifdef G_OS_UNIX
+#if defined(G_OS_UNIX) && !defined(__wasi__)
   return WIFSIGNALED (status);
 #else
   return FALSE;
@@ -1339,7 +1347,7 @@ g_subprocess_get_term_sig (GSubprocess *subprocess)
 
   g_return_val_if_fail (pid == 0, 0);
 
-#ifdef G_OS_UNIX
+#if defined(G_OS_UNIX) && !defined(__wasi__)
   g_return_val_if_fail (WIFSIGNALED (status), 0);
 
   return WTERMSIG (status);

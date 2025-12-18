@@ -34,7 +34,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <errno.h>
-#ifdef G_OS_UNIX
+#if defined(G_OS_UNIX) && !defined(__wasi__)
 #include <grp.h>
 #include <pwd.h>
 #endif
@@ -924,7 +924,7 @@ get_access_rights (GFileAttributeMatcher *attribute_matcher,
       writable = FALSE;
       if (parent_info->writable)
 	{
-#ifdef G_OS_WIN32
+#if defined(G_OS_WIN32) || defined(__wasi__)
 	  writable = TRUE;
 #else
 	  if (parent_info->is_sticky)
@@ -1153,14 +1153,18 @@ uid_data_free (UidData *data)
   g_free (data);
 }
 
+#ifndef __wasi__
 /* called with lock held */
 static UidData *
 lookup_uid_data (uid_t uid)
 {
   UidData *data;
   char buffer[4096];
+
+#ifndef __wasi__
   struct passwd pwbuf;
   struct passwd *pwbufp;
+#endif
 #ifndef __BIONIC__
   char *gecos, *comma;
 #endif
@@ -1293,6 +1297,7 @@ get_groupname_from_gid (gid_t gid)
   G_UNLOCK (gid_cache);
   return res;
 }
+#endif
 
 #endif /* !G_OS_WIN32 */
 
@@ -2104,7 +2109,7 @@ _g_local_file_info_get (const char             *basename,
       
 #ifdef G_OS_WIN32
       win32_get_file_user_info (path, NULL, &name, NULL);
-#else
+#elif !defined(__wasi__)
       if (stat_ok)
         name = get_username_from_uid (_g_stat_uid (&statbuf));
 #endif
@@ -2119,7 +2124,7 @@ _g_local_file_info_get (const char             *basename,
       char *name = NULL;
 #ifdef G_OS_WIN32
       win32_get_file_user_info (path, NULL, NULL, &name);
-#else
+#elif !defined(__wasi__)
       if (stat_ok)
         name = get_realname_from_uid (_g_stat_uid (&statbuf));
 #endif
@@ -2134,7 +2139,7 @@ _g_local_file_info_get (const char             *basename,
       char *name = NULL;
 #ifdef G_OS_WIN32
       win32_get_file_user_info (path, &name, NULL, NULL);
-#else
+#elif !defined(__wasi__)
       if (stat_ok)
         name = get_groupname_from_gid (_g_stat_gid (&statbuf));
 #endif
@@ -2425,6 +2430,10 @@ set_unix_uid_gid (char                       *filename,
 		  GFileQueryInfoFlags         flags,
 		  GError                    **error)
 {
+#ifdef __wasi__
+  g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,  _("Not supported on wasi"));
+  return FALSE;
+#else
   int res;
   guint32 val = 0;
   uid_t uid;
@@ -2466,6 +2475,7 @@ set_unix_uid_gid (char                       *filename,
 	  return FALSE;
     }
   return TRUE;
+#endif
 }
 #endif
 

@@ -15,6 +15,7 @@ if cc.get_id() != 'msvc'
   ])
 endif
 
+if host_system != 'wasip1'
 giinspecttypelib = executable('gi-inspect-typelib', 'inspector.c',
   dependencies: [
     libgirepository_dep,
@@ -24,3 +25,4 @@ giinspecttypelib = executable('gi-inspect-typelib', 'inspector.c',
   install: true,
   c_args: custom_c_args,
 )
+endif

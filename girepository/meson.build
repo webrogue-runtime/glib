@@ -220,6 +220,7 @@ libgirepository_dep = declare_dependency(
   },
 )
 
+if host_system != 'wasip1'
 executable('gi-dump-types',
   sources: 'gi-dump-types.c',
   dependencies: [
@@ -229,6 +230,7 @@ executable('gi-dump-types',
     app_profile_dep,
   ],
 )
+endif
 
 pkgconfig_variables = [
   'gidatadir=${datadir}/gobject-introspection-1.0',

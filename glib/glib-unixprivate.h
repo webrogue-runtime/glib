@@ -44,6 +44,9 @@ g_unix_open_pipe_internal (int *fds,
                            gboolean close_on_exec,
                            gboolean nonblock)
   {
+#ifdef __wasi__
+  return FALSE;
+#else
 #ifdef HAVE_PIPE2
   do
     {
@@ -110,6 +113,7 @@ g_unix_open_pipe_internal (int *fds,
     }
 
   return TRUE;
+#endif
 }
 
 G_END_DECLS

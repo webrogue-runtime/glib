@@ -24,11 +24,15 @@
 
 #include <sys/time.h>
 #include <sys/types.h>
+#ifndef __wasi__
 #include <sys/wait.h>
+#endif
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
+#ifndef __wasi__
 #include <signal.h>
+#endif
 #include <string.h>
 #include <stdlib.h>   /* for fdwalk */
 #include <dirent.h>
@@ -46,7 +50,7 @@
 #include <sys/select.h>
 #endif /* HAVE_SYS_SELECT_H */
 
-#ifdef HAVE_SYS_RESOURCE_H
+#if defined(HAVE_SYS_RESOURCE_H) && !defined(__wasi__)
 #include <sys/resource.h>
 #endif /* HAVE_SYS_RESOURCE_H */
 
@@ -204,6 +208,9 @@ g_spawn_sync_impl (const gchar           *working_directory,
                    gint                  *wait_status,
                    GError               **error)
 {
+#ifdef __wasi__
+  abort();
+#else
   gint outpipe = -1;
   gint errpipe = -1;
   GPid pid;
@@ -403,6 +410,7 @@ g_spawn_sync_impl (const gchar           *working_directory,
 
       return TRUE;
     }
+#endif
 }
 
 gboolean
@@ -473,6 +481,9 @@ gboolean
 g_spawn_check_wait_status_impl (gint     wait_status,
                                 GError **error)
 {
+#ifdef __wasi__
+  abort();
+#else
   gboolean ret = FALSE;
 
   if (WIFEXITED (wait_status))
@@ -534,6 +545,7 @@ write_all (gint fd, gconstpointer vbuf, gsize to_write)
     }
   
   return TRUE;
+#endif
 }
 
 /* This function is called between fork() and exec() and hence must be
@@ -542,6 +554,9 @@ G_NORETURN
 static void
 write_err_and_exit (gint fd, gint msg)
 {
+#ifdef __wasi__
+  abort();
+#else
   gint en = errno;
   
   write_all (fd, &msg, sizeof(msg));
@@ -550,6 +565,7 @@ write_err_and_exit (gint fd, gint msg)
   close (fd);
   
   _exit (1);
+#endif
 }
 
 /* This function is called between fork() and exec() and hence must be
@@ -588,6 +604,9 @@ unset_cloexec (int fd)
 static int
 dupfd_cloexec (int old_fd, int new_fd_min)
 {
+#ifdef __wasi__
+  abort();
+#else
   int fd, errsv;
 #ifdef F_DUPFD_CLOEXEC
   do
@@ -620,6 +639,7 @@ dupfd_cloexec (int old_fd, int new_fd_min)
     }
 #endif
   return fd;
+#endif
 }
 
 /* This function is called between fork() and exec() and hence must be
@@ -627,6 +647,9 @@ dupfd_cloexec (int old_fd, int new_fd_min)
 static gint
 safe_dup2 (gint fd1, gint fd2)
 {
+#ifdef __wasi__
+  abort();
+#else
   gint ret;
 
   do
@@ -634,6 +657,7 @@ safe_dup2 (gint fd1, gint fd2)
   while (ret < 0 && (errno == EINTR || errno == EBUSY));
 
   return ret;
+#endif
 }
 
 /* This function is called between fork() and exec() and hence must be
@@ -641,6 +665,9 @@ safe_dup2 (gint fd1, gint fd2)
 static gboolean
 relocate_fd_out_of_standard_range (gint *fd)
 {
+#ifdef __wasi__
+  abort();
+#else
   gint ret = -1;
   const int min_fileno = STDERR_FILENO + 1;
 
@@ -658,6 +685,7 @@ relocate_fd_out_of_standard_range (gint *fd)
     }
 
   return FALSE;
+#endif
 }
 
 /* This function is called between fork() and exec() and hence must be
@@ -1274,6 +1302,9 @@ fork_exec (gboolean              intermediate_child,
            gsize                 n_fds,
            GError              **error)
 {
+#ifdef __wasi__
+  abort();
+#else
   GPid pid = -1;
   GUnixPipe child_err_report_pipe = G_UNIX_PIPE_INIT;
   GUnixPipe child_pid_report_pipe = G_UNIX_PIPE_INIT;
@@ -1797,6 +1828,7 @@ success:
   g_clear_pointer (&source_fds_copy, g_free);
 
   return FALSE;
+#endif
 }
 
 /* Based on execvp from GNU C Library */
@@ -1810,6 +1842,9 @@ script_execute (const gchar *file,
                 gsize        argv_buffer_len,
                 gchar      **envp)
 {
+#ifdef __wasi__
+  abort();
+#else
   /* Count the arguments.  */
   gsize argc = 0;
   while (argv[argc])
@@ -1834,6 +1869,7 @@ script_execute (const gchar *file,
     execv (argv_buffer[0], argv_buffer);
 
   return TRUE;
+#endif
 }
 
 /* This function is called between fork() and exec() and hence must be
@@ -1860,6 +1896,9 @@ g_execute (const gchar  *file,
            gchar        *search_path_buffer,
            gsize         search_path_buffer_len)
 {
+#ifdef __wasi__
+  abort();
+#else
   if (file == NULL || *file == '\0')
     {
       /* We check the simple case first. */
@@ -1987,6 +2026,7 @@ g_execute (const gchar  *file,
 
   /* Return the error from the last attempt (probably ENOENT).  */
   return -1;
+#endif
 }
 
 void

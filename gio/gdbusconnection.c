@@ -921,6 +921,9 @@ g_dbus_connection_real_closed (GDBusConnection *connection,
                                gboolean         remote_peer_vanished,
                                GError          *error)
 {
+#ifdef __wasi__
+  abort();
+#else
   gint flags = g_atomic_int_get (&connection->atomic_flags);
 
   /* Because atomic int access is a memory barrier, we can safely read
@@ -933,6 +936,7 @@ g_dbus_connection_real_closed (GDBusConnection *connection,
     {
       raise (SIGTERM);
     }
+#endif
 }
 
 static void

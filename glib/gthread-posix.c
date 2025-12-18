@@ -803,7 +803,11 @@ g_system_thread_wait (GRealThread *thread)
 void
 g_system_thread_exit (void)
 {
+#ifdef __wasi__
+  abort();
+#else
   pthread_exit (NULL);
+#endif
 }
 
 void

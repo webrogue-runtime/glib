@@ -498,8 +498,9 @@ meson.override_dependency('glib-2.0', libglib_dep)
 # glib_compile_resources in the build process. We can drop this when
 # https://github.com/mesonbuild/meson/issues/13385 is fixed.
 gspawn_helpers = []
+if host_system == 'wasip1'
 # On Windows, glib needs a spawn helper for g_spawn* API
-if host_system == 'windows'
+elif host_system == 'windows'
   if host_machine.cpu_family() == 'x86'
     gspawn_helpers += executable('gspawn-win32-helper', 'gspawn-win32-helper.c',
       install : true,

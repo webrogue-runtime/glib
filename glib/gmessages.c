@@ -34,7 +34,9 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#ifndef __wasi__
 #include <signal.h>
+#endif
 #include <locale.h>
 #include <errno.h>
 
@@ -448,10 +450,14 @@ _g_log_abort (gboolean breakpoint)
   debugger_present = TRUE;
 #endif /* !G_OS_WIN32 */
 
+#ifdef __wasi__
+  g_abort ();
+#else
   if (debugger_present && breakpoint)
     G_BREAKPOINT ();
   else
     g_abort ();
+#endif
 }
 
 #if defined(G_OS_WIN32) && (defined(_DEBUG) || !defined(G_WINAPI_ONLY_APP))

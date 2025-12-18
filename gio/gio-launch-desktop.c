@@ -256,5 +256,9 @@ main (int argc, char *argv[])
   set_up_journal (argv[1]);
 #endif
 
+#ifdef __wasi__
+  abort();
+#else
   return execvp (argv[1], argv + 1);
+#endif
 }

@@ -1034,6 +1034,9 @@ g_dbus_address_get_stream_sync (const gchar   *address,
 static gchar *
 get_session_address_xdg (void)
 {
+#ifdef __wasi__
+  abort();
+#else
 #ifdef G_OS_UNIX
   gchar *ret = NULL;
   gchar *bus;
@@ -1065,6 +1068,7 @@ out:
   return ret;
 #else
   return NULL;
+#endif
 #endif
 }
 

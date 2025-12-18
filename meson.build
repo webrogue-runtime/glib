@@ -2725,7 +2725,9 @@ subdir('gthread')
 subdir('gmodule')
 subdir('gio')
 subdir('girepository')
+if host_system != 'wasip1'
 subdir('fuzzing')
+endif
 if get_option('tests')
   subdir('tests')
 endif

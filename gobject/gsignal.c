@@ -26,7 +26,9 @@
 
 #include "config.h"
 
+#ifndef __wasi__
 #include <signal.h>
+#endif
 #include <stdint.h>
 #include <string.h>
 

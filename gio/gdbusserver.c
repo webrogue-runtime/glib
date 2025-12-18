@@ -681,6 +681,10 @@ try_unix (GDBusServer  *server,
           GHashTable   *key_value_pairs,
           GError      **error)
 {
+#ifdef __wasi__
+  g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,  _("Not supported on wasi"));
+  return FALSE;
+#else
   gboolean ret;
   const gchar *path;
   const gchar *dir;
@@ -805,6 +809,7 @@ try_unix (GDBusServer  *server,
       g_object_unref (address);
     }
   return ret;
+#endif
 }
 
 /* ---------------------------------------------------------------------------------------------------- */

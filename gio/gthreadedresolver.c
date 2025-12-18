@@ -144,6 +144,7 @@ g_resolver_error_from_addrinfo_error (gint err)
 {
   switch (err)
     {
+#ifndef __wasi__
     case EAI_FAIL:
 #if defined(EAI_NODATA) && (EAI_NODATA != EAI_NONAME)
     case EAI_NODATA:
@@ -153,7 +154,7 @@ g_resolver_error_from_addrinfo_error (gint err)
 
     case EAI_AGAIN:
       return G_RESOLVER_ERROR_TEMPORARY_FAILURE;
-
+#endif
     default:
       return G_RESOLVER_ERROR_INTERNAL;
     }
@@ -369,6 +370,10 @@ do_lookup_by_name (GThreadedResolver  *resolver,
                    GCancellable       *cancellable,
                    GError            **error)
 {
+#ifdef __wasi__
+  g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,  _("Not supported on wasi"));
+  return FALSE;
+#else
   struct addrinfo *res = NULL;
   GList *addresses;
   gint retval;
@@ -460,6 +465,7 @@ do_lookup_by_name (GThreadedResolver  *resolver,
 
       return NULL;
     }
+#endif
 }
 
 static GList *
@@ -598,6 +604,10 @@ do_lookup_by_address (GInetAddress  *address,
                       GCancellable  *cancellable,
                       GError       **error)
 {
+#ifdef __wasi__
+  g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,  _("Not supported on wasi"));
+  return FALSE;
+#else
   struct sockaddr_storage sockaddr_address;
   gsize sockaddr_address_size;
   GSocketAddress *gsockaddr;
@@ -638,6 +648,7 @@ do_lookup_by_address (GInetAddress  *address,
 
       return NULL;
     }
+#endif
 }
 
 static gchar *
@@ -846,6 +857,10 @@ expand_name (const gchar   *rrname,
              gsize          namebuf_len,
              GError       **error)
 {
+#ifdef __wasi__
+  g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,  _("Not supported on wasi"));
+  return FALSE;
+#else
   int expand_result;
 
   expand_result = dn_expand (answer, end, *p, namebuf, namebuf_len);
@@ -860,6 +875,7 @@ expand_name (const gchar   *rrname,
   *p += expand_result;
 
   return TRUE;
+#endif
 }
 
 static GVariant *
@@ -1060,6 +1076,10 @@ g_resolver_records_from_res_query (const gchar      *rrname,
                                    gint              herr,
                                    GError          **error)
 {
+#ifdef __wasi__
+  g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,  _("Not supported on wasi"));
+  return FALSE;
+#else
   uint16_t count;
   gchar namebuf[1024];
   const guint8 *end, *p;
@@ -1218,6 +1238,7 @@ g_resolver_records_from_res_query (const gchar      *rrname,
     }
   else
     return records;
+#endif
 }
 
 #elif defined(G_OS_WIN32)
@@ -1391,6 +1412,10 @@ do_lookup_records (const gchar          *rrname,
                    GCancellable         *cancellable,
                    GError              **error)
 {
+#ifdef __wasi__
+  g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,  _("Not supported on wasi"));
+  return FALSE;
+#else
   GList *records;
 
 #if defined(G_OS_UNIX)
@@ -1480,6 +1505,7 @@ do_lookup_records (const gchar          *rrname,
 #endif
 
   return g_steal_pointer (&records);
+#endif
 }
 
 static GList *

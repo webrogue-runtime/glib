@@ -43,7 +43,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #ifdef G_OS_UNIX
+#ifndef __wasi__
 #include <pwd.h>
+#endif
 #include <sys/utsname.h>
 #include <unistd.h>
 #endif
@@ -726,6 +728,7 @@ g_get_user_database_entry (void)
         while (!pw);
 #  endif /* HAVE_GETPWUID_R */
 
+#ifndef __wasi__
         if (!pw)
           {
             pw = getpwuid (getuid ());
@@ -756,6 +759,7 @@ g_get_user_database_entry (void)
             if (!e.home_dir)
               e.home_dir = g_strdup (pw->pw_dir);
           }
+#endif
         g_free (buffer);
       }
 
@@ -3196,7 +3200,7 @@ g_check_setuid (void)
    * https://code.google.com/p/android-developer-preview/issues/detail?id=168
    */
   return issetugid ();
-#elif defined(G_OS_UNIX)
+#elif defined(G_OS_UNIX) && !defined(__wasi__)
   uid_t ruid, euid, suid; /* Real, effective and saved user ID's */
   gid_t rgid, egid, sgid; /* Real, effective and saved group ID's */
 

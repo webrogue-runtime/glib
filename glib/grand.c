@@ -206,7 +206,9 @@ g_rand_new (void)
       seed[0] = (guint32) (now_us / G_USEC_PER_SEC);
       seed[1] = now_us % G_USEC_PER_SEC;
       seed[2] = getpid ();
+#ifndef __wasi__
       seed[3] = getppid ();
+#endif
     }
 #else /* G_OS_WIN32 */
   /* rand_s() is only available since Visual Studio 2005 and

@@ -156,6 +156,9 @@ _g_test_watcher_remove_pid (GPid pid)
 static void
 watch_parent (gint fd)
 {
+#ifdef __wasi__
+  abort();
+#else
   GIOChannel *channel;
   GPollFD fds[1];
   GArray *pids_to_kill;
@@ -231,11 +234,15 @@ watch_parent (gint fd)
       g_free (command);
     }
   while (TRUE);
+#endif
 }
 
 static GIOChannel *
 watcher_init (void)
 {
+#ifdef __wasi__
+  abort();
+#else
   static gsize started = 0;
   static GIOChannel *channel = NULL;
   int errsv;
@@ -286,6 +293,7 @@ watcher_init (void)
     }
 
   return channel;
+#endif
 }
 
 static void
@@ -705,6 +713,9 @@ start_daemon (GTestDBus *self)
 static void
 stop_daemon (GTestDBus *self)
 {
+#ifdef __wasi__
+  abort();
+#else
 #ifdef G_OS_WIN32
   if (!TerminateProcess (self->priv->bus_pid, 0))
     g_warning ("Can't terminate process: %s", g_win32_error_message (GetLastError()));
@@ -717,6 +728,7 @@ stop_daemon (GTestDBus *self)
 
   g_free (self->priv->bus_address);
   self->priv->bus_address = NULL;
+#endif
 }
 
 /**

@@ -32,7 +32,9 @@
 #include "config.h"
 #include "glibconfig.h"
 
+#ifndef __wasi__
 #include <signal.h>
+#endif
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,7 +50,9 @@
 #include "glib-unixprivate.h"
 #include <errno.h>
 #include <unistd.h>
+#ifndef __wasi__
 #include <sys/wait.h>
+#endif
 #ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
 #endif /* HAVE_SYS_SELECT_H */
@@ -248,7 +252,11 @@ g_on_error_query (const gchar *prg_name)
 void
 g_on_error_stack_trace (const gchar *prg_name)
 {
-#if defined(G_OS_UNIX)
+#ifdef __wasi__
+  perror ("unable to fork " DEBUGGER);
+  return;
+#else
+#if defined(G_OS_UNIX) 
   pid_t pid;
   gchar buf[16];
   gchar buf2[64];
@@ -305,9 +313,10 @@ g_on_error_stack_trace (const gchar *prg_name)
   else
     g_abort ();
 #endif
+#endif
 }
 
-#ifndef G_OS_WIN32
+#if !defined(G_OS_WIN32) && !defined(__wasi__)
 
 static gboolean stack_trace_done = FALSE;
 

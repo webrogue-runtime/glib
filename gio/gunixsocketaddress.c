@@ -73,11 +73,13 @@ enum
 
 struct _GUnixSocketAddressPrivate
 {
+#ifndef __wasi__
   char path[UNIX_PATH_MAX]; /* Not including the initial zero in abstract case, so
 			       we can guarantee zero termination of abstract
 			       pathnames in the get_path() API */
   gsize path_len; /* Not including any terminating zeros */
   GUnixSocketAddressType address_type;
+#endif
 };
 
 static void   g_unix_socket_address_connectable_iface_init (GSocketConnectableIface *iface);
@@ -94,6 +96,9 @@ g_unix_socket_address_set_property (GObject      *object,
 				    const GValue *value,
 				    GParamSpec   *pspec)
 {
+#ifdef __wasi__
+  abort();
+#else
   GUnixSocketAddress *address = G_UNIX_SOCKET_ADDRESS (object);
   const char *str;
   GByteArray *array;
@@ -142,6 +147,7 @@ g_unix_socket_address_set_property (GObject      *object,
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     }
+#endif
 }
 
 static void
@@ -150,6 +156,9 @@ g_unix_socket_address_get_property (GObject    *object,
 				    GValue     *value,
 				    GParamSpec *pspec)
 {
+#ifdef __wasi__
+  abort();
+#else
   GUnixSocketAddress *address = G_UNIX_SOCKET_ADDRESS (object);
   GByteArray *array;
 
@@ -178,19 +187,27 @@ g_unix_socket_address_get_property (GObject    *object,
       default:
 	G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     }
+#endif
 }
 
 static GSocketFamily
 g_unix_socket_address_get_family (GSocketAddress *address)
 {
+#ifdef __wasi__
+  abort();
+#else
   g_assert (PF_UNIX == G_SOCKET_FAMILY_UNIX);
 
   return G_SOCKET_FAMILY_UNIX;
+#endif
 }
 
 static gssize
 g_unix_socket_address_get_native_size (GSocketAddress *address)
 {
+#ifdef __wasi__
+  abort();
+#else
   GUnixSocketAddress *addr = G_UNIX_SOCKET_ADDRESS (address);
 
   switch (addr->priv->address_type)
@@ -202,6 +219,7 @@ g_unix_socket_address_get_native_size (GSocketAddress *address)
     default:
       return sizeof (struct sockaddr_un);
     }
+#endif
 }
 
 static gboolean
@@ -210,6 +228,10 @@ g_unix_socket_address_to_native (GSocketAddress *address,
 				 gsize           destlen,
 				 GError        **error)
 {
+#ifdef __wasi__
+  g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,  _("Not supported on wasi"));
+  return FALSE;
+#else
   GUnixSocketAddress *addr = G_UNIX_SOCKET_ADDRESS (address);
   struct sockaddr_un *sock;
   gssize socklen;
@@ -252,6 +274,7 @@ g_unix_socket_address_to_native (GSocketAddress *address,
     }
 
   return TRUE;
+#endif
 }
 
 static void
@@ -341,6 +364,9 @@ g_unix_socket_address_connectable_iface_init (GSocketConnectableIface *iface)
 static gchar *
 g_unix_socket_address_connectable_to_string (GSocketConnectable *connectable)
 {
+#ifdef __wasi__
+  abort();
+#else
   GUnixSocketAddress *ua;
   GString *out;
   const gchar *path;
@@ -369,16 +395,21 @@ g_unix_socket_address_connectable_to_string (GSocketConnectable *connectable)
     }
 
   return g_string_free (out, FALSE);
+#endif
 }
 
 static void
 g_unix_socket_address_init (GUnixSocketAddress *address)
 {
+#ifdef __wasi__
+  abort();
+#else
   address->priv = g_unix_socket_address_get_instance_private (address);
 
   memset (address->priv->path, 0, sizeof (address->priv->path));
   address->priv->path_len = -1;
   address->priv->address_type = G_UNIX_SOCKET_ADDRESS_PATH;
+#endif
 }
 
 /**
@@ -516,7 +547,11 @@ g_unix_socket_address_new_with_type (const gchar            *path,
 const char *
 g_unix_socket_address_get_path (GUnixSocketAddress *address)
 {
+#ifdef __wasi__
+  abort();
+#else
   return address->priv->path;
+#endif
 }
 
 /**
@@ -534,7 +569,11 @@ g_unix_socket_address_get_path (GUnixSocketAddress *address)
 gsize
 g_unix_socket_address_get_path_len (GUnixSocketAddress *address)
 {
+#ifdef __wasi__
+  abort();
+#else
   return address->priv->path_len;
+#endif
 }
 
 /**
@@ -550,7 +589,11 @@ g_unix_socket_address_get_path_len (GUnixSocketAddress *address)
 GUnixSocketAddressType
 g_unix_socket_address_get_address_type (GUnixSocketAddress *address)
 {
+#ifdef __wasi__
+  abort();
+#else
   return address->priv->address_type;
+#endif
 }
 
 /**
@@ -568,8 +611,12 @@ g_unix_socket_address_get_address_type (GUnixSocketAddress *address)
 gboolean
 g_unix_socket_address_get_is_abstract (GUnixSocketAddress *address)
 {
+#ifdef __wasi__
+  abort();
+#else
   return (address->priv->address_type == G_UNIX_SOCKET_ADDRESS_ABSTRACT ||
 	  address->priv->address_type == G_UNIX_SOCKET_ADDRESS_ABSTRACT_PADDED);
+#endif
 }
 
 /**

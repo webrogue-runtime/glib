@@ -36,7 +36,9 @@
 #endif
 
 #include <errno.h>
+#ifndef __wasi__
 #include <signal.h>
+#endif
 #include <string.h>
 #include <stdlib.h>
 
@@ -469,6 +471,7 @@ check_timeout (GSocket *socket,
   return TRUE;
 }
 
+#ifndef __wasi__
 static void
 g_socket_details_from_fd (GSocket *socket)
 {
@@ -602,6 +605,7 @@ g_socket_details_from_fd (GSocket *socket)
 	       _("creating GSocket from fd: %s"),
 	       socket_strerror (errsv));
 }
+#endif
 
 static void
 socket_set_nonblock (int fd)
@@ -641,6 +645,10 @@ g_socket (gint     domain,
           gint     protocol,
           GError **error)
 {
+#ifdef __wasi__
+  g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,  _("Not supported on wasi"));
+  return FALSE;
+#else
   int fd, errsv;
 
 #if defined(SOCK_CLOEXEC) && defined(SOCK_NONBLOCK)
@@ -695,6 +703,7 @@ g_socket (gint     domain,
   socket_set_nonblock (fd);
 
   return fd;
+#endif
 }
 
 /* Returned socket has SOCK_CLOEXEC | SOCK_NONBLOCK set. */
@@ -716,9 +725,11 @@ g_socket_create_socket (GSocketFamily   family,
       native_type = SOCK_DGRAM;
       break;
 
+#ifndef __wasi__
      case G_SOCKET_TYPE_SEQPACKET:
       native_type = SOCK_SEQPACKET;
       break;
+#endif
 
      default:
       g_assert_not_reached ();
@@ -744,6 +755,9 @@ g_socket_create_socket (GSocketFamily   family,
 static void
 g_socket_constructed (GObject *object)
 {
+#ifdef __wasi__
+  abort();
+#else
   GSocket *socket = G_SOCKET (object);
 
   if (socket->priv->fd >= 0)
@@ -770,6 +784,7 @@ g_socket_constructed (GObject *object)
       if (socket->priv->type == G_SOCKET_TYPE_STREAM)
         g_socket_set_option (socket, IPPROTO_TCP, TCP_NODELAY, TRUE, NULL);
     }
+#endif
 }
 
 static void
@@ -1056,7 +1071,11 @@ g_socket_class_init (GSocketClass *klass)
   g_object_class_install_property (gobject_class, PROP_LISTEN_BACKLOG,
 				   g_param_spec_int ("listen-backlog", NULL, NULL,
 						     0,
+#ifdef __wasi__
+                 1,
+#else
 						     SOMAXCONN,
+#endif
 						     10,
 						     G_PARAM_READWRITE |
                                                      G_PARAM_STATIC_STRINGS));
@@ -1486,6 +1505,9 @@ void
 g_socket_set_keepalive (GSocket  *socket,
 			gboolean  keepalive)
 {
+#ifdef __wasi__
+  abort();
+#else
   GError *error = NULL;
 
   g_return_if_fail (G_IS_SOCKET (socket));
@@ -1504,6 +1526,7 @@ g_socket_set_keepalive (GSocket  *socket,
 
   socket->priv->keepalive = keepalive;
   g_object_notify (G_OBJECT (socket), "keepalive");
+#endif
 }
 
 /**
@@ -1733,6 +1756,9 @@ g_socket_set_ttl (GSocket  *socket,
 gboolean
 g_socket_get_broadcast (GSocket *socket)
 {
+#ifdef __wasi__
+  return FALSE;
+#else
   GError *error = NULL;
   gint value;
 
@@ -1747,6 +1773,7 @@ g_socket_get_broadcast (GSocket *socket)
     }
 
   return !!value;
+#endif
 }
 
 /**
@@ -1764,6 +1791,9 @@ void
 g_socket_set_broadcast (GSocket    *socket,
        	                gboolean    broadcast)
 {
+#ifdef __wasi__
+  return;
+#else
   GError *error = NULL;
 
   g_return_if_fail (G_IS_SOCKET (socket));
@@ -1779,6 +1809,7 @@ g_socket_set_broadcast (GSocket    *socket,
     }
 
   g_object_notify (G_OBJECT (socket), "broadcast");
+#endif
 }
 
 /**
@@ -2052,6 +2083,10 @@ GSocketAddress *
 g_socket_get_local_address (GSocket  *socket,
 			    GError  **error)
 {
+#ifdef __wasi__
+  g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,  _("Not supported on wasi"));
+  return NULL;
+#else
   union {
     struct sockaddr_storage storage;
     struct sockaddr sa;
@@ -2069,6 +2104,7 @@ g_socket_get_local_address (GSocket  *socket,
     }
 
   return g_socket_address_new_from_native (&buffer.storage, len);
+#endif
 }
 
 /**
@@ -2088,6 +2124,10 @@ GSocketAddress *
 g_socket_get_remote_address (GSocket  *socket,
 			     GError  **error)
 {
+#ifdef __wasi__
+  g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,  _("Not supported on wasi"));
+  return NULL;
+#else
   union {
     struct sockaddr_storage storage;
     struct sockaddr sa;
@@ -2118,6 +2158,7 @@ g_socket_get_remote_address (GSocket  *socket,
     }
 
   return g_object_ref (socket->priv->remote_address);
+#endif
 }
 
 /**
@@ -2166,6 +2207,10 @@ gboolean
 g_socket_listen (GSocket  *socket,
 		 GError  **error)
 {
+#ifdef __wasi__
+  g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,  _("Not supported on wasi"));
+  return FALSE;
+#else
   g_return_val_if_fail (G_IS_SOCKET (socket), FALSE);
 
   if (!check_socket (socket, error))
@@ -2183,6 +2228,7 @@ g_socket_listen (GSocket  *socket,
   socket->priv->listening = TRUE;
 
   return TRUE;
+#endif
 }
 
 /**
@@ -2226,6 +2272,10 @@ g_socket_bind (GSocket         *socket,
 	       gboolean         reuse_address,
 	       GError         **error)
 {
+#ifdef __wasi__
+  g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,  _("Not supported on wasi"));
+  return FALSE;
+#else
   union {
     struct sockaddr_storage storage;
     struct sockaddr sa;
@@ -2287,6 +2337,7 @@ g_socket_bind (GSocket         *socket,
     }
 
   return TRUE;
+#endif
 }
 
 #ifdef G_OS_WIN32
@@ -2448,6 +2499,10 @@ g_socket_multicast_group_operation (GSocket       *socket,
 				    gboolean       join_group,
 				    GError       **error)
 {
+#ifdef __wasi__
+  g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,  _("Not supported on wasi"));
+  return FALSE;
+#else
   const guint8 *native_addr;
   gint optname, result;
 
@@ -2556,6 +2611,7 @@ g_socket_multicast_group_operation (GSocket       *socket,
     }
 
   return TRUE;
+#endif
 }
 
 /**
@@ -2635,6 +2691,10 @@ g_socket_multicast_group_operation_ssm (GSocket       *socket,
                                         gboolean       join_group,
                                         GError       **error)
 {
+#ifdef __wasi__
+  g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,  _("Not supported on wasi"));
+  return FALSE;
+#else
   gint result;
 
   g_return_val_if_fail (G_IS_SOCKET (socket), FALSE);
@@ -2813,6 +2873,7 @@ g_socket_multicast_group_operation_ssm (GSocket       *socket,
     }
 
   return TRUE;
+#endif
 }
 
 /**
@@ -3106,6 +3167,10 @@ g_socket_connect (GSocket         *socket,
 		  GCancellable    *cancellable,
 		  GError         **error)
 {
+#ifdef __wasi__
+  g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,  _("Not supported on wasi"));
+  return FALSE;
+#else
   union {
     struct sockaddr_storage storage;
     struct sockaddr sa;
@@ -3175,6 +3240,7 @@ g_socket_connect (GSocket         *socket,
   socket->priv->connected_write = TRUE;
 
   return TRUE;
+#endif
 }
 
 /**
@@ -3194,6 +3260,10 @@ gboolean
 g_socket_check_connect_result (GSocket  *socket,
 			       GError  **error)
 {
+#ifdef __wasi__
+  g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,  _("Not supported on wasi"));
+  return FALSE;
+#else
   int value;
 
   g_return_val_if_fail (G_IS_SOCKET (socket), FALSE);
@@ -3226,6 +3296,7 @@ g_socket_check_connect_result (GSocket  *socket,
   socket->priv->connected_write = TRUE;
 
   return TRUE;
+#endif
 }
 
 /**
@@ -4938,6 +5009,9 @@ input_message_from_msghdr (const struct msghdr  *msg,
                            GInputMessage        *message,
                            GSocket              *socket)
 {
+#ifdef __wasi__
+  abort();
+#else
   /* decode address */
   if (message->address != NULL)
     {
@@ -4997,6 +5071,7 @@ input_message_from_msghdr (const struct msghdr  *msg,
 
   /* capture the flags */
   message->flags = msg->msg_flags;
+#endif
 }
 #endif
 
@@ -5183,6 +5258,10 @@ g_socket_send_message_with_timeout (GSocket                *socket,
                                     GCancellable           *cancellable,
                                     GError                **error)
 {
+#ifdef __wasi__
+  g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,  _("Not supported on wasi"));
+  return FALSE;
+#else
   GOutputVector one_vector;
   char zero;
   gint64 start_time;
@@ -5375,6 +5454,7 @@ g_socket_send_message_with_timeout (GSocket                *socket,
       *bytes_written = bytes_sent;
     return G_POLLABLE_RETURN_OK;
   }
+#endif
 #endif
 }
 
@@ -5692,6 +5772,10 @@ g_socket_receive_message_with_timeout (GSocket                 *socket,
                                        GCancellable            *cancellable,
                                        GError                 **error)
 {
+#ifdef __wasi__
+  g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,  _("Not supported on wasi"));
+  return FALSE;
+#else
   GInputVector one_vector;
   char one_byte;
   gint64 start_time;
@@ -5880,6 +5964,7 @@ g_socket_receive_message_with_timeout (GSocket                 *socket,
 
     return bytes_received;
   }
+#endif
 #endif
 }
 
@@ -6559,6 +6644,10 @@ g_socket_set_option (GSocket  *socket,
 		     gint      value,
 		     GError  **error)
 {
+#ifdef __wasi__
+  g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,  _("Not supported on wasi"));
+  return FALSE;
+#else
   gint errsv;
 
   g_return_val_if_fail (G_IS_SOCKET (socket), FALSE);
@@ -6595,4 +6684,5 @@ g_socket_set_option (GSocket  *socket,
   errno = errsv;
 #endif
   return FALSE;
+#endif
 }

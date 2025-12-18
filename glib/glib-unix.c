@@ -50,14 +50,16 @@
 #include <stdlib.h>   /* for fdwalk */
 #include <string.h>
 #include <sys/types.h>
+#ifndef __wasi__
 #include <pwd.h>
+#endif
 #include <unistd.h>
 
 #if defined(__linux__) || defined(__DragonFly__)
 #include <sys/syscall.h>  /* for syscall and SYS_getdents64 */
 #endif
 
-#ifdef HAVE_SYS_RESOURCE_H
+#if defined(HAVE_SYS_RESOURCE_H) && !defined(__wasi__)
 #include <sys/resource.h>
 #endif /* HAVE_SYS_RESOURCE_H */
 
@@ -227,11 +229,15 @@ g_unix_set_fd_nonblocking (gint       fd,
 GSource *
 g_unix_signal_source_new (int signum)
 {
+#ifdef __wasi__
+  return NULL;
+#else
   g_return_val_if_fail (signum == SIGHUP || signum == SIGINT || signum == SIGTERM ||
                         signum == SIGUSR1 || signum == SIGUSR2 || signum == SIGWINCH,
                         NULL);
 
   return _g_main_create_unix_signal_watch (signum);
+#endif
 }
 
 /**
@@ -462,6 +468,11 @@ struct passwd *
 g_unix_get_passwd_entry (const gchar  *user_name,
                          GError      **error)
 {
+#ifdef __wasi__
+  g_set_error (error, G_FILE_ERROR, G_FILE_ERROR_NOSYS,
+               "g_unix_get_passwd_entry() not supported on __wasi__");
+  return NULL;
+#else
   struct passwd *passwd_file_entry;
   struct
     {
@@ -550,6 +561,7 @@ g_unix_get_passwd_entry (const gchar  *user_name,
     }
 
   return (struct passwd *) g_steal_pointer (&buffer);
+#endif
 }
 
 /* This function is called between fork() and exec() and hence must be
@@ -1005,6 +1017,10 @@ g_unix_fd_query_path (int      fd,
    */
   g_set_error (error, G_FILE_ERROR, G_FILE_ERROR_NOSYS,
                "g_unix_fd_query_path() not supported on HURD");
+  return NULL;
+#elif defined (__wasi__)
+  g_set_error (error, G_FILE_ERROR, G_FILE_ERROR_NOSYS,
+               "g_unix_fd_query_path() not supported on __wasi__");
   return NULL;
 #else
   #error "g_unix_fd_query_path() not supported on this platform"

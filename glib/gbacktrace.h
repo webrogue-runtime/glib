@@ -35,7 +35,9 @@
 #ifdef __sun__
 #include <sys/select.h>
 #endif
+#ifndef __wasi__
 #include <signal.h>
+#endif
 
 G_BEGIN_DECLS
 

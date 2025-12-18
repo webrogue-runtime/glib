@@ -427,6 +427,10 @@ handle_ip_address_or_localhost (const char                *hostname,
                                 GResolverNameLookupFlags   flags,
                                 GError                   **error)
 {
+#ifdef __wasi__
+  g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,  _("Not supported on wasi"));
+  return FALSE;
+#else
   GInetAddress *addr;
 
 #ifndef G_OS_WIN32
@@ -499,6 +503,7 @@ handle_ip_address_or_localhost (const char                *hostname,
     }
 
   return FALSE;
+#endif
 }
 
 static GList *

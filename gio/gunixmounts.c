@@ -28,7 +28,9 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifndef __wasi__
 #include <sys/wait.h>
+#endif
 #ifndef HAVE_SYSCTLBYNAME
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
@@ -42,7 +44,9 @@
 #include <sys/time.h>
 #include <errno.h>
 #include <string.h>
+#ifndef __wasi__
 #include <signal.h>
+#endif
 #include <gstdio.h>
 #include <dirent.h>
 
@@ -1153,6 +1157,31 @@ _g_get_unix_mounts (void)
 }
 
 /* Common code {{{2 */
+#elif defined (__wasi__)
+
+static char *
+get_mtab_monitor_file (void)
+{
+  /* TODO: Not implemented */
+  return NULL;
+}
+
+static GUnixMountEntry **
+_g_unix_mounts_get_from_file (const char *table_path,
+                              uint64_t   *time_read_out,
+                              size_t     *n_entries_out)
+{
+  /* Not implemented, as per _g_get_unix_mounts() below */
+  return NULL;
+}
+
+static GList *
+_g_get_unix_mounts (void)
+{
+  /* TODO: Not implemented */
+  return NULL;
+}
+
 #else
 #error No _g_get_unix_mounts() implementation for system
 #endif
@@ -1767,6 +1796,28 @@ _g_unix_mount_points_get_from_file (const char *table_path,
 }
 
 /* Common code {{{2 */
+
+#elif defined(__wasi__)
+
+static GList *
+_g_get_unix_mount_points (void)
+{
+  return NULL;
+}
+
+static GUnixMountPoint **
+_g_unix_mount_points_get_from_file (const char *table_path,
+                                    uint64_t   *time_read_out,
+                                    size_t     *n_points_out)
+{
+  /* Not supported on getfsent() systems. */
+  if (time_read_out != NULL)
+    *time_read_out = 0;
+  if (n_points_out != NULL)
+    *n_points_out = 0;
+  return NULL;
+}
+
 #else
 #error No g_get_mount_table() implementation for system
 #endif
@@ -3758,7 +3809,11 @@ g_unix_mount_entry_guess_should_display (GUnixMountEntry *mount_entry)
   mount_path = mount_entry->mount_path;
   if (mount_path != NULL)
     {
+#ifdef __wasi__
+      const gboolean running_as_root = FALSE;
+#else
       const gboolean running_as_root = (getuid () == 0);
+#endif
       gboolean is_in_runtime_dir = FALSE;
 
       /* Hide mounts within a dot path, suppose it was a purpose to hide this mount */

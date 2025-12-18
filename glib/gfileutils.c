@@ -426,8 +426,10 @@ g_file_test (const gchar *filename,
   
   if ((test & G_FILE_TEST_IS_EXECUTABLE) && (access (filename, X_OK) == 0))
     {
+#ifndef __wasi__
       if (getuid () != 0)
 	return TRUE;
+#endif
 
       /* For root, on some POSIX systems, access (filename, X_OK)
        * will succeed even if no executable bits are set on the

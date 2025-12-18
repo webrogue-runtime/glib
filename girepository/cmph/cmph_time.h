@@ -8,7 +8,7 @@
 
 #ifdef __GNUC__
 	#include <sys/time.h>
-	#ifndef WIN32
+	#if !defined(WIN32) && !defined(__wasi__)
 		#include <sys/resource.h>
 	#endif
 #endif

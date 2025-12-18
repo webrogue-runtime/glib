@@ -26,7 +26,9 @@
 #include "config.h"
 
 #include <string.h>
+#ifndef __wasi__
 #include <sys/wait.h>
+#endif
 #include <unistd.h>
 
 #include <glib.h>

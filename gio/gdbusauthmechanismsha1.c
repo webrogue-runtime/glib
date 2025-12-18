@@ -995,6 +995,9 @@ mechanism_server_initiate (GDBusAuthMechanism   *mechanism,
                            const gchar          *initial_response,
                            gsize                 initial_response_len)
 {
+#ifdef __wasi__
+  abort();
+#else
   GDBusAuthMechanismSha1 *m = G_DBUS_AUTH_MECHANISM_SHA1 (mechanism);
 
   g_return_if_fail (G_IS_DBUS_AUTH_MECHANISM_SHA1 (mechanism));
@@ -1030,6 +1033,7 @@ mechanism_server_initiate (GDBusAuthMechanism   *mechanism,
 #error Please implement for your OS
 #endif
     }
+#endif
 }
 
 static void
@@ -1168,6 +1172,9 @@ mechanism_client_initiate (GDBusAuthMechanism   *mechanism,
                            GDBusConnectionFlags  conn_flags,
                            gsize                *out_initial_response_len)
 {
+#ifdef __wasi__
+  abort();
+#else
   GDBusAuthMechanismSha1 *m = G_DBUS_AUTH_MECHANISM_SHA1 (mechanism);
   gchar *initial_response;
 
@@ -1196,6 +1203,7 @@ mechanism_client_initiate (GDBusAuthMechanism   *mechanism,
     }
 
   return initial_response;
+#endif
 }
 
 static void

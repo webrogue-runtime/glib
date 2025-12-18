@@ -64,12 +64,13 @@ g_unix_fd_message_get_level (GSocketControlMessage *message)
 {
   return SOL_SOCKET;
 }
-
+#ifndef __wasi__
 static int
 g_unix_fd_message_get_msg_type (GSocketControlMessage *message)
 {
   return SCM_RIGHTS;
 }
+#endif
 
 static GSocketControlMessage *
 g_unix_fd_message_deserialize (int      level,
@@ -77,6 +78,9 @@ g_unix_fd_message_deserialize (int      level,
 			       gsize    size,
 			       gpointer data)
 {
+#ifdef __wasi__
+  abort();
+#else
   GSocketControlMessage *message;
   GUnixFDList *list;
   gint n, s, i;
@@ -123,6 +127,7 @@ g_unix_fd_message_deserialize (int      level,
   g_object_unref (list);
 
   return message;
+#endif
 }
 
 static void
@@ -201,6 +206,9 @@ g_unix_fd_message_finalize (GObject *object)
 static void
 g_unix_fd_message_class_init (GUnixFDMessageClass *class)
 {
+#ifdef __wasi__
+  abort();
+#else
   GSocketControlMessageClass *scm_class = G_SOCKET_CONTROL_MESSAGE_CLASS (class);
   GObjectClass *object_class = G_OBJECT_CLASS (class);
 
@@ -224,6 +232,7 @@ g_unix_fd_message_class_init (GUnixFDMessageClass *class)
     g_param_spec_object ("fd-list", NULL, NULL,
                          G_TYPE_UNIX_FD_LIST, G_PARAM_STATIC_STRINGS |
                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+#endif
 }
 
 /**

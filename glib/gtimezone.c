@@ -27,7 +27,9 @@
 
 #include <string.h>
 #include <stdlib.h>
+#ifndef __wasi__
 #include <signal.h>
+#endif
 
 #include "gmappedfile.h"
 #include "gtestutils.h"

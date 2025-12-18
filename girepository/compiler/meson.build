@@ -15,6 +15,7 @@ if cc.get_id() != 'msvc'
   ])
 endif
 
+if host_system != 'wasip1'
 gicompilerepository = executable('gi-compile-repository', 'compiler.c',
   dependencies: [
     libgirepository_dep,
@@ -25,6 +26,7 @@ gicompilerepository = executable('gi-compile-repository', 'compiler.c',
   install: true,
   c_args: custom_c_args,
 )
+endif
 
 # Only override the user-installed compiler if we need to generate the GIRs
 # GLib, Gio, and GObject...

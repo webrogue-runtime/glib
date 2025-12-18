@@ -208,6 +208,9 @@ GSocketAddress *
 g_socket_address_new_from_native (gpointer native,
 				  gsize    len)
 {
+#ifdef __wasi__
+  return NULL;
+#else
 #ifdef G_OS_WIN32
   ADDRESS_FAMILY family;
 #else
@@ -303,6 +306,7 @@ g_socket_address_new_from_native (gpointer native,
     }
 
   return g_native_socket_address_new (native, len);
+#endif
 }
 
 

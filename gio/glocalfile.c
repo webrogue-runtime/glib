@@ -1094,7 +1094,7 @@ g_local_file_query_filesystem_info (GFile         *file,
   fstype = statfs_buffer.f_fstypename;
 #elif defined(HAVE_STRUCT_STATVFS_F_BASETYPE)
   fstype = statfs_buffer.f_basetype;
-#elif defined(HAVE_STRUCT_STATVFS_F_TYPE)
+#elif defined(HAVE_STRUCT_STATVFS_F_TYPE) && !defined(__wasi__)
   fstype = get_fs_type (statfs_buffer.f_type);
 #else
   fstype = NULL;
@@ -1897,6 +1897,9 @@ ignore_trash_path (const gchar *topdir)
 gboolean
 _g_local_file_has_trash_dir (const char *dirname, dev_t dir_dev)
 {
+#ifdef __wasi__
+  return FALSE;
+#else
   static gsize home_dev_set = 0;
   static dev_t home_dev;
   static gboolean home_dev_valid = FALSE;
@@ -1978,6 +1981,7 @@ _g_local_file_has_trash_dir (const char *dirname, dev_t dir_dev)
   g_free (topdir);
 
   return res;
+#endif
 }
 
 #ifndef G_OS_WIN32
@@ -2099,6 +2103,10 @@ g_local_file_trash (GFile         *file,
 		    GCancellable  *cancellable,
 		    GError       **error)
 {
+#ifdef __wasi__
+  g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,  _("Not supported on wasi"));
+  return FALSE;
+#else
   GLocalFile *local = G_LOCAL_FILE (file);
   GStatBuf file_stat, home_stat;
   dev_t checked_st_dev;
@@ -2540,6 +2548,7 @@ g_local_file_trash (GFile         *file,
   g_free (trashname);
   
   return TRUE;
+#endif
 }
 #else /* G_OS_WIN32 */
 gboolean

@@ -438,6 +438,9 @@ g_inet_address_init (GInetAddress *address)
 GInetAddress *
 g_inet_address_new_from_string (const gchar *string)
 {
+#ifdef __wasi__
+  return NULL;
+#else
   struct in_addr in_addr;
 
   g_return_val_if_fail (string != NULL, NULL);
@@ -497,6 +500,7 @@ g_inet_address_new_from_string (const gchar *string)
     return g_inet_address_new_from_bytes ((guint8 *)&in_addr, G_SOCKET_FAMILY_IPV4);
 
   return NULL;
+#endif
 }
 
 #define G_INET_ADDRESS_FAMILY_IS_VALID(family) ((family) == AF_INET || (family) == AF_INET6)

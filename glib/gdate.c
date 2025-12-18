@@ -1398,7 +1398,9 @@ _g_localtime (time_t timet, struct tm *out_tm)
   gboolean success = TRUE;
 
 #ifdef HAVE_LOCALTIME_R
+#ifndef __wasi__
   tzset ();
+#endif
   if (!localtime_r (&timet, out_tm))
     success = FALSE;
 #else

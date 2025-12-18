@@ -37,13 +37,19 @@
 
 #include <sys/types.h>
 
+#ifndef __wasi__
 #include <netdb.h>
+#endif
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+#ifndef __wasi__
 #include <resolv.h>
+#endif
 #include <sys/socket.h>
 #include <sys/un.h>
+#ifndef __wasi__
 #include <net/if.h>
+#endif
 
 #include <arpa/inet.h>
 #include <arpa/nameser.h>

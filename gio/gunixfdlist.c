@@ -89,6 +89,9 @@ static int
 dup_close_on_exec_fd (gint     fd,
                       GError **error)
 {
+#ifdef __wasi__
+  abort();
+#else
   gint new_fd;
 #ifndef G_OS_WIN32
   gint s;
@@ -146,6 +149,7 @@ dup_close_on_exec_fd (gint     fd,
 #endif
 
   return new_fd;
+#endif
 }
 
 /**

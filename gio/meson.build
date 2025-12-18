@@ -39,7 +39,7 @@ endif
 
 network_libs = [ ]
 network_args = [ ]
-if host_system != 'windows'
+if host_system != 'windows' and host_system != 'wasip1'
   # res_query()
   res_query_test = '''#include <resolv.h>
                       int main (int argc, char ** argv) {
@@ -425,15 +425,17 @@ if host_system != 'windows'
       launch_desktop_sources += files('../glib/gjournal-private.c')
     endif
 
-    gio_launch_desktop = executable('gio-launch-desktop', launch_desktop_sources,
-      dependencies: [app_profile_dep],
-      include_directories : glibinc,
-      install : true,
-      install_dir : multiarch_libexecdir,
-      install_tag : 'bin',
-      c_args : gio_c_args,
-      # intl.lib is not compatible with SAFESEH
-      link_args : noseh_link_args)
+    if host_system != 'wasip1'
+      gio_launch_desktop = executable('gio-launch-desktop', launch_desktop_sources,
+        dependencies: [app_profile_dep],
+        include_directories : glibinc,
+        install : true,
+        install_dir : multiarch_libexecdir,
+        install_tag : 'bin',
+        c_args : gio_c_args,
+        # intl.lib is not compatible with SAFESEH
+        link_args : noseh_link_args)
+    endif
   endif
 
   subdir('xdgmime')
@@ -1042,6 +1044,7 @@ gio_tool_sources = [
   'gio-tool-tree.c',
 ]
 
+if host_system != 'wasip1'
 gio_tool = executable('gio', gio_tool_sources,
   install : true,
   install_tag : 'bin',
@@ -1049,14 +1052,18 @@ gio_tool = executable('gio', gio_tool_sources,
   # intl.lib is not compatible with SAFESEH
   link_args : noseh_link_args,
   dependencies : [libgio_dep, libgobject_dep, libgmodule_dep, libglib_dep, app_profile_dep])
+endif
 
+if host_system != 'wasip1'
 executable('gresource', 'gresource-tool.c',
   install : true,
   install_tag : 'bin',
   # intl.lib is not compatible with SAFESEH
   link_args : noseh_link_args,
   dependencies : [libelf, libgio_dep, libgobject_dep, libgmodule_dep, libglib_dep, app_profile_dep])
+endif
 
+if host_system != 'wasip1'
 gio_querymodules = executable('gio-querymodules', 'gio-querymodules.c', 'giomodule-priv.c',
   install : true,
   install_dir : multiarch_bindir,
@@ -1065,7 +1072,9 @@ gio_querymodules = executable('gio-querymodules', 'gio-querymodules.c', 'giomodu
   # intl.lib is not compatible with SAFESEH
   link_args : noseh_link_args,
   dependencies : [libgio_dep, libgobject_dep, libgmodule_dep, libglib_dep, app_profile_dep])
+endif
 
+if host_system != 'wasip1'
 glib_compile_schemas = executable('glib-compile-schemas',
   ['glib-compile-schemas.c'],
   install : true,
@@ -1074,7 +1083,9 @@ glib_compile_schemas = executable('glib-compile-schemas',
   # intl.lib is not compatible with SAFESEH
   link_args : noseh_link_args,
   dependencies : [libgio_dep, libgobject_dep, libgmodule_dep, libglib_dep, gvdb_dep, app_profile_dep])
+endif
 
+if host_system != 'wasip1'
 glib_compile_resources = executable('glib-compile-resources',
   [gconstructor_as_data_h, 'glib-compile-resources.c'],
   install : true,
@@ -1083,6 +1094,7 @@ glib_compile_resources = executable('glib-compile-resources',
   # intl.lib is not compatible with SAFESEH
   link_args : noseh_link_args,
   dependencies : [libgio_dep, libgobject_dep, libgmodule_dep, libglib_dep, gvdb_dep, app_profile_dep])
+endif
 install_data('gresource.dtd',
   install_dir: get_option('datadir') / dtds_subdir,
   install_tag: 'devel',
@@ -1097,6 +1109,7 @@ if meson.can_run_host_binaries()
   meson.override_find_program('gio-querymodules', gio_querymodules)
 endif
 
+if host_system != 'wasip1'
 executable('gsettings', 'gsettings-tool.c',
   install : true,
   install_tag : 'bin',
@@ -1104,6 +1117,7 @@ executable('gsettings', 'gsettings-tool.c',
   # intl.lib is not compatible with SAFESEH
   link_args : noseh_link_args,
   dependencies : [libgio_dep, libgobject_dep, libgmodule_dep, libglib_dep, app_profile_dep])
+endif
 install_data('gschema.dtd',
   install_dir : get_option('datadir') / schemas_subdir,
   install_tag : 'devel',
@@ -1114,6 +1128,7 @@ install_data(['gschema.loc', 'gschema.its'],
   install_tag : 'devel',
 )
 
+if host_system != 'wasip1'
 executable('gdbus', 'gdbus-tool.c',
   install : true,
   install_tag : 'bin',
@@ -1121,8 +1136,9 @@ executable('gdbus', 'gdbus-tool.c',
   # intl.lib is not compatible with SAFESEH
   link_args : noseh_link_args,
   dependencies : [libgio_dep, libgobject_dep, libgmodule_dep, libglib_dep, app_profile_dep])
+endif
 
-if host_system != 'windows' and not glib_have_cocoa
+if host_system != 'windows' and not glib_have_cocoa and host_system != 'wasip1'
   executable('gapplication', 'gapplication-tool.c',
     install : true,
     install_tag : 'bin',
