@@ -205,8 +205,8 @@ g_rand_new (void)
       gint64 now_us = g_get_real_time ();
       seed[0] = (guint32) (now_us / G_USEC_PER_SEC);
       seed[1] = now_us % G_USEC_PER_SEC;
-      seed[2] = getpid ();
 #ifndef __wasi__
+      seed[2] = getpid ();
       seed[3] = getppid ();
 #endif
     }

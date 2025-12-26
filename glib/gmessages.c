@@ -2223,6 +2223,7 @@ log_writer_format_fields_internal (struct LogFormatted *ctx,
   if (!log_domain)
     g_string_append (gstring, "** ");
 
+#ifndef __wasi__
   if ((g_log_msg_prefix & (log_level & G_LOG_LEVEL_MASK)) ==
       (log_level & G_LOG_LEVEL_MASK))
     {
@@ -2234,6 +2235,7 @@ log_writer_format_fields_internal (struct LogFormatted *ctx,
       else
         g_string_append_printf (gstring, "(%s:%lu): ", prg_name, pid);
     }
+#endif
 
   if (log_domain != NULL)
     {
@@ -3129,7 +3131,7 @@ _g_log_writer_fallback (GLogLevelFlags   log_level,
       write_string_sized (stream, field->value, field->length);
     }
 
-#ifndef G_OS_WIN32
+#if !defined(G_OS_WIN32) && !defined(__wasi__)
   {
     gchar pid_string[FORMAT_UNSIGNED_BUFSIZE];
 
@@ -3390,7 +3392,7 @@ _g_log_fallback_handler (const gchar   *log_domain,
   if (!message)
     message = "(NULL) message";
 
-#ifndef G_OS_WIN32
+#if !defined(G_OS_WIN32) && !defined(__wasi__)
   format_unsigned (pid_string, getpid (), 10);
 #endif
 

@@ -752,7 +752,7 @@ g_system_thread_new (GThreadFunc proxy,
     }
 #endif /* HAVE_PTHREAD_ATTR_SETSTACKSIZE */
 
-#ifdef HAVE_PTHREAD_ATTR_SETINHERITSCHED
+#if defined(HAVE_PTHREAD_ATTR_SETINHERITSCHED) && !defined(__wasi__)
     {
       /* While this is the default, better be explicit about it */
       pthread_attr_setinheritsched (&attr, PTHREAD_INHERIT_SCHED);
@@ -835,7 +835,7 @@ void
 g_system_thread_get_name (char  *buffer,
                           gsize  length)
 {
-#ifdef HAVE_PTHREAD_GETNAME_NP
+#if defined(HAVE_PTHREAD_GETNAME_NP) && !defined(__wasi__)
   pthread_getname_np (pthread_self (), buffer, length);
 #else
   g_assert (length >= 1);
