@@ -58,9 +58,11 @@ struct _GApplicationClass
 
   /*< public >*/
   /* signals */
-  void                      (* startup)             (GApplication              *application);
+  void                      (* startup)             (GApplication              *application,
+                                                     gpointer                   data);
 
-  void                      (* activate)            (GApplication              *application);
+  void                      (* activate)            (GApplication              *application,
+                                                     gpointer                   data);
 
   void                      (* open)                (GApplication              *application,
                                                      GFile                    **files,
@@ -116,7 +118,8 @@ struct _GApplicationClass
                                                      GDBusConnection           *connection,
                                                      const gchar               *object_path);
   gint                      (* handle_local_options)(GApplication              *application,
-                                                     GVariantDict              *options);
+                                                     GVariantDict              *options,
+                                                     gpointer                   data);
   gboolean                  (* name_lost)           (GApplication              *application);
 
   /*< private >*/

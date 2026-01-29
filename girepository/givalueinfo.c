@@ -72,8 +72,8 @@ gi_value_info_get_value (GIValueInfo *info)
 }
 
 void
-gi_value_info_class_init (gpointer g_class,
-                          gpointer class_data)
+gi_value_info_class_init (gpointer g_class
+                          G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data))
 {
   GIBaseInfoClass *info_class = g_class;
 

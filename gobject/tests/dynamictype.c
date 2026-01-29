@@ -42,13 +42,13 @@ typedef struct _TestIface      TestIface;
 typedef struct _TestIfaceClass TestIfaceClass;
 
 static void test_iface_base_init    (TestIfaceClass *iface);
-static void test_iface_default_init (TestIfaceClass *iface, gpointer class_data);
+static void test_iface_default_init (TestIfaceClass *iface G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data));
 
 static DEFINE_IFACE(TestIface, test_iface, test_iface_base_init, test_iface_default_init)
 
 static void
-test_iface_default_init (TestIfaceClass *iface,
-                         gpointer        class_data)
+test_iface_default_init (TestIfaceClass *iface
+                         G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data))
 {
 }
 

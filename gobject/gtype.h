@@ -412,7 +412,20 @@ G_BEGIN_DECLS
  */
 #define G_TYPE_IS_DEPRECATED(type)                   (g_type_test_flags ((type), G_TYPE_FLAG_DEPRECATED)) GOBJECT_AVAILABLE_MACRO_IN_2_76
 
+#ifdef __wasi__
+#define _G_STRICT_INIT_FUNC_SIGNATURE 1
+#else
+#define  _G_STRICT_INIT_FUNC_SIGNATURE 0
+#endif
 
+#if _G_STRICT_INIT_FUNC_SIGNATURE
+gpointer gobject_init_func_data(void);
+#define G_DEFINE_INIT_FUNC_CLASS_PARAM(param_name)
+#define G_INIT_FUNC_GET_CLASS(param_name) gobject_init_func_data()
+#else
+#define G_DEFINE_INIT_FUNC_CLASS_PARAM(param_name) , gpointer param_name
+#define G_INIT_FUNC_GET_CLASS(param_name) param_name
+#endif
 /* Typedefs
  */
 /**
@@ -452,6 +465,9 @@ struct _GTypeClass
 {
   /*< private >*/
   GType g_type;
+#if _G_STRICT_INIT_FUNC_SIGNATURE
+  gpointer init_func_data;
+#endif
 };
 /**
  * GTypeInstance:
@@ -462,6 +478,9 @@ struct _GTypeInstance
 {
   /*< private >*/
   GTypeClass *g_class;
+#if _G_STRICT_INIT_FUNC_SIGNATURE
+  gpointer init_func_data;
+#endif
 };
 /**
  * GTypeInterface:
@@ -473,6 +492,9 @@ struct _GTypeInterface
   /*< private >*/
   GType g_type;         /* iface type */
   GType g_instance_type;
+#if _G_STRICT_INIT_FUNC_SIGNATURE
+  gpointer init_func_data;
+#endif
 };
 /**
  * GTypeQuery:
@@ -944,8 +966,12 @@ typedef void   (*GBaseFinalizeFunc)          (gpointer         g_class);
  * have to be provided to release allocated resources at class finalization
  * time.
  */
+#if _G_STRICT_INIT_FUNC_SIGNATURE
+typedef void   (*GClassInitFunc)             (gpointer         g_class);
+#else
 typedef void   (*GClassInitFunc)             (gpointer         g_class,
 					      gpointer         class_data);
+#endif
 /**
  * GClassFinalizeFunc:
  * @g_class: (type GObject.TypeClass): The #GTypeClass structure to finalize
@@ -983,8 +1009,12 @@ typedef void   (*GClassFinalizeFunc)         (gpointer         g_class,
  * The extended members of @instance are guaranteed to have been filled with
  * zeros before this function is called.
  */
+#if _G_STRICT_INIT_FUNC_SIGNATURE
+typedef void   (*GInstanceInitFunc)          (GTypeInstance   *instance);
+#else
 typedef void   (*GInstanceInitFunc)          (GTypeInstance   *instance,
 					      gpointer         g_class);
+#endif
 /**
  * GInterfaceInitFunc:
  * @g_iface: (type GObject.TypeInterface): The interface structure to initialize
@@ -999,8 +1029,12 @@ typedef void   (*GInstanceInitFunc)          (GTypeInstance   *instance,
  * The members of @iface_data are guaranteed to have been filled with
  * zeros before this function is called.
  */
+#if _G_STRICT_INIT_FUNC_SIGNATURE
+typedef void   (*GInterfaceInitFunc)         (gpointer         g_iface);
+#else
 typedef void   (*GInterfaceInitFunc)         (gpointer         g_iface,
 					      gpointer         iface_data);
+#endif
 /**
  * GInterfaceFinalizeFunc:
  * @g_iface: (type GObject.TypeInterface): The interface structure to finalize

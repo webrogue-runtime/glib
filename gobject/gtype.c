@@ -1789,6 +1789,17 @@ maybe_issue_deprecation_warning (GType type)
                name);
 }
 
+#if _G_STRICT_INIT_FUNC_SIGNATURE
+static gpointer *gobject_init_func_data_ptr(void) {
+  static _Thread_local gpointer init_func_data = NULL;
+  return &init_func_data;
+}
+
+gpointer gobject_init_func_data(void) {
+  return *gobject_init_func_data_ptr();
+}
+#endif
+
 /**
  * g_type_create_instance: (skip)
  * @type: an instantiatable type to create an instance for
@@ -1891,13 +1902,28 @@ g_type_create_instance (GType type)
       if (pnode->data->instance.instance_init)
 	{
 	  instance->g_class = pnode->data->instance.class;
-	  pnode->data->instance.instance_init (instance, class);
+
+#if _G_STRICT_INIT_FUNC_SIGNATURE
+    *gobject_init_func_data_ptr() = (gpointer)class;
+    pnode->data->instance.instance_init (instance);
+    *gobject_init_func_data_ptr() = NULL;
+#else
+    pnode->data->instance.instance_init (instance, class);
+#endif
 	}
     }
 
   instance->g_class = class;
-  if (node->data->instance.instance_init)
+  if (node->data->instance.instance_init) {
+    
+#if _G_STRICT_INIT_FUNC_SIGNATURE
+    *gobject_init_func_data_ptr() = (gpointer)class;
+    node->data->instance.instance_init (instance);
+    *gobject_init_func_data_ptr() = NULL;
+#else
     node->data->instance.instance_init (instance, class);
+#endif
+  }
 
 #ifdef	G_ENABLE_DEBUG
   IF_DEBUG (INSTANCE_COUNT)
@@ -2003,8 +2029,15 @@ type_iface_ensure_dflt_vtable_Wm (TypeNode *iface)
           G_WRITE_UNLOCK (&type_rw_lock);
           if (iface->data->iface.vtable_init_base)
             iface->data->iface.vtable_init_base (vtable);
-          if (iface->data->iface.dflt_init)
+          if (iface->data->iface.dflt_init) {
+#if _G_STRICT_INIT_FUNC_SIGNATURE
+            *gobject_init_func_data_ptr() = (gpointer) iface->data->iface.dflt_data;
+            iface->data->iface.dflt_init (vtable);
+            *gobject_init_func_data_ptr() = NULL;
+#else
             iface->data->iface.dflt_init (vtable, (gpointer) iface->data->iface.dflt_data);
+#endif
+          }
           G_WRITE_LOCK (&type_rw_lock);
         }
     }
@@ -2090,8 +2123,15 @@ type_iface_vtable_iface_init_Wm (TypeNode *iface,
   if (iholder->info->interface_init)
     {
       G_WRITE_UNLOCK (&type_rw_lock);
-      if (iholder->info->interface_init)
+      if (iholder->info->interface_init) {
+#if _G_STRICT_INIT_FUNC_SIGNATURE
+        *gobject_init_func_data_ptr() = iholder->info->interface_data;
+	iholder->info->interface_init (vtable);
+        *gobject_init_func_data_ptr() = NULL;
+#else
 	iholder->info->interface_init (vtable, iholder->info->interface_data);
+#endif
+      }
       G_WRITE_LOCK (&type_rw_lock);
     }
   
@@ -2227,8 +2267,15 @@ type_class_init_Wm (TypeNode   *node,
   
   G_WRITE_UNLOCK (&type_rw_lock);
 
-  if (node->data->class.class_init)
+  if (node->data->class.class_init) { 
+#if _G_STRICT_INIT_FUNC_SIGNATURE
+    *gobject_init_func_data_ptr() = (gpointer) node->data->class.class_data;
+    node->data->class.class_init (class);
+    *gobject_init_func_data_ptr() = NULL;
+#else
     node->data->class.class_init (class, (gpointer) node->data->class.class_data);
+#endif
+  }
   
   G_WRITE_LOCK (&type_rw_lock);
   

@@ -155,142 +155,142 @@ struct _GICallableInfo
   GIBaseInfo parent;
 };
 
-void gi_callable_info_class_init (gpointer g_class,
-                                  gpointer class_data);
+void gi_callable_info_class_init (gpointer g_class
+                                  G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data));
 
 struct _GIFunctionInfo
 {
   GICallableInfo parent;
 };
 
-void gi_function_info_class_init (gpointer g_class,
-                                  gpointer class_data);
+void gi_function_info_class_init (gpointer g_class
+                                  G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data));
 
 struct _GICallbackInfo
 {
   GICallableInfo parent;
 };
 
-void gi_callback_info_class_init (gpointer g_class,
-                                  gpointer class_data);
+void gi_callback_info_class_init (gpointer g_class
+                                  G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data));
 
 struct _GIRegisteredTypeInfo
 {
   GIBaseInfo parent;
 };
 
-void gi_registered_type_info_class_init (gpointer g_class,
-                                         gpointer class_data);
+void gi_registered_type_info_class_init (gpointer g_class
+                                         G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data));
 
 struct _GIStructInfo
 {
   GIRegisteredTypeInfo parent;
 };
 
-void gi_struct_info_class_init (gpointer g_class,
-                                gpointer class_data);
+void gi_struct_info_class_init (gpointer g_class
+                                G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data));
 
 struct _GIUnionInfo
 {
   GIRegisteredTypeInfo parent;
 };
 
-void gi_union_info_class_init (gpointer g_class,
-                               gpointer class_data);
+void gi_union_info_class_init (gpointer g_class
+                               G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data));
 
 struct _GIEnumInfo
 {
   GIRegisteredTypeInfo parent;
 };
 
-void gi_enum_info_class_init (gpointer g_class,
-                              gpointer class_data);
+void gi_enum_info_class_init (gpointer g_class
+                              G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data));
 
 struct _GIFlagsInfo
 {
   GIEnumInfo parent;
 };
 
-void gi_flags_info_class_init (gpointer g_class,
-                               gpointer class_data);
+void gi_flags_info_class_init (gpointer g_class
+                               G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data));
 
 struct _GIObjectInfo
 {
   GIRegisteredTypeInfo parent;
 };
 
-void gi_object_info_class_init (gpointer g_class,
-                                gpointer class_data);
+void gi_object_info_class_init (gpointer g_class
+                                G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data));
 
 struct _GIInterfaceInfo
 {
   GIRegisteredTypeInfo parent;
 };
 
-void gi_interface_info_class_init (gpointer g_class,
-                                   gpointer class_data);
+void gi_interface_info_class_init (gpointer g_class
+                                   G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data));
 
 struct _GIConstantInfo
 {
   GIBaseInfo parent;
 };
 
-void gi_constant_info_class_init (gpointer g_class,
-                                  gpointer class_data);
+void gi_constant_info_class_init (gpointer g_class
+                                  G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data));
 
 struct _GIValueInfo
 {
   GIBaseInfo parent;
 };
 
-void gi_value_info_class_init (gpointer g_class,
-                               gpointer class_data);
+void gi_value_info_class_init (gpointer g_class
+                               G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data));
 
 struct _GISignalInfo
 {
   GICallableInfo parent;
 };
 
-void gi_signal_info_class_init (gpointer g_class,
-                                gpointer class_data);
+void gi_signal_info_class_init (gpointer g_class
+                                G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data));
 
 struct _GIVFuncInfo
 {
   GICallableInfo parent;
 };
 
-void gi_vfunc_info_class_init (gpointer g_class,
-                               gpointer class_data);
+void gi_vfunc_info_class_init (gpointer g_class
+                               G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data));
 
 struct _GIPropertyInfo
 {
   GIBaseInfo parent;
 };
 
-void gi_property_info_class_init (gpointer g_class,
-                                  gpointer class_data);
+void gi_property_info_class_init (gpointer g_class
+                                  G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data));
 
 struct _GIFieldInfo
 {
   GIBaseInfo parent;
 };
 
-void gi_field_info_class_init (gpointer g_class,
-                               gpointer class_data);
+void gi_field_info_class_init (gpointer g_class
+                               G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data));
 
 /* GIArgInfo is stack-allocatable so it can be used with
  * gi_callable_info_load_return_type() and gi_callable_info_load_arg(), so its
  * definition is actually public in gitypes.h. */
 
-void gi_arg_info_class_init (gpointer g_class,
-                             gpointer class_data);
+void gi_arg_info_class_init (gpointer g_class
+                             G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data));
 
 /* GITypeInfo is stack-allocatable so it can be used with
  * gi_arg_info_load_type_info(), so its definition is actually public in
  * gitypes.h. */
 
-void gi_type_info_class_init (gpointer g_class,
-                              gpointer class_data);
+void gi_type_info_class_init (gpointer g_class
+                              G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data));
 
 struct _GIUnresolvedInfo
 {
@@ -300,8 +300,8 @@ struct _GIUnresolvedInfo
   const char *namespace;
 };
 
-void gi_unresolved_info_class_init (gpointer g_class,
-                                    gpointer class_data);
+void gi_unresolved_info_class_init (gpointer g_class
+                                    G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data));
 
 void         gi_info_init       (GIRealInfo   *info,
                                  GType         type,

@@ -1000,6 +1000,14 @@ g_slist_sort_real (GSList   *list,
                              user_data);
 }
 
+static int
+compare_func_adapter (gconstpointer a,
+                      gconstpointer b,
+                      gpointer userdata)
+{
+  return ((GCompareFunc) userdata) (a, b);
+}
+
 /**
  * g_slist_sort:
  * @list: a #GSList
@@ -1018,7 +1026,7 @@ GSList *
 g_slist_sort (GSList       *list,
               GCompareFunc  compare_func)
 {
-  return g_slist_sort_real (list, (GFunc) compare_func, NULL);
+  return g_slist_sort_real (list, (GFunc) compare_func_adapter, compare_func);
 }
 
 /**

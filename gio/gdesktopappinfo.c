@@ -3158,12 +3158,14 @@ g_desktop_app_info_launch_uris_with_spawn (GDesktopAppInfo            *info,
           g_variant_unref (platform_data);
         }
 
+#ifndef __wasi__
       notify_desktop_launch (session_bus,
                              info,
                              pid,
                              NULL,
                              sn_id,
                              launched_uris);
+#endif
 
       g_free (sn_id);
       g_list_free (launched_uris);

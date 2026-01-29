@@ -152,8 +152,8 @@ G_STATIC_ASSERT(G_STRUCT_OFFSET(GObject, qdata) == G_STRUCT_OFFSET(GObjectReal, 
 static void	g_object_base_class_init		(GObjectClass	*class);
 static void	g_object_base_class_finalize		(GObjectClass	*class);
 static void	g_object_do_class_init			(GObjectClass	*class);
-static void	g_object_init				(GObject	*object,
-							 GObjectClass	*class);
+static void	g_object_init				(GObject	*object
+							 G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data));
 static GObject*	g_object_constructor			(GType                  type,
 							 guint                  n_construct_properties,
 							 GObjectConstructParam *construct_params);
@@ -1757,9 +1757,10 @@ unset_object_in_construction (GObject *object)
 }
 
 static void
-g_object_init (GObject		*object,
-	       GObjectClass	*class)
+g_object_init (GObject		*object
+	       G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data))
 {
+  GObjectClass *class = G_INIT_FUNC_GET_CLASS(class_data);
   object->ref_count = 1;
   object->qdata = NULL;
 

@@ -60,10 +60,10 @@
 /* --- prototypes --- */
 static void	g_param_spec_class_base_init	 (GParamSpecClass	*class);
 static void	g_param_spec_class_base_finalize (GParamSpecClass	*class);
-static void	g_param_spec_class_init		 (GParamSpecClass	*class,
-						  gpointer               class_data);
-static void	g_param_spec_init		 (GParamSpec		*pspec,
-						  GParamSpecClass	*class);
+static void	g_param_spec_class_init		 (GParamSpecClass	*class
+						  G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data));
+static void	g_param_spec_init		 (GParamSpec		*pspec
+						  G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data));
 static void	g_param_spec_finalize		 (GParamSpec		*pspec);
 static void	value_param_init		(GValue		*value);
 static void	value_param_free_value		(GValue		*value);
@@ -154,8 +154,8 @@ g_param_spec_class_base_finalize (GParamSpecClass *class)
 }
 
 static void
-g_param_spec_class_init (GParamSpecClass *class,
-			 gpointer         class_data)
+g_param_spec_class_init (GParamSpecClass *class
+			 G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data))
 {
   class->value_type = G_TYPE_NONE;
   class->finalize = g_param_spec_finalize;
@@ -167,9 +167,10 @@ g_param_spec_class_init (GParamSpecClass *class,
 }
 
 static void
-g_param_spec_init (GParamSpec      *pspec,
-		   GParamSpecClass *class)
+g_param_spec_init (GParamSpec      *pspec
+		   G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data))
 {
+  GParamSpecClass *class = G_INIT_FUNC_GET_CLASS(class_data);
   pspec->name = NULL;
   pspec->_nick = NULL;
   pspec->_blurb = NULL;
@@ -1436,11 +1437,11 @@ typedef struct
 } ParamSpecClassInfo;
 
 static void
-param_spec_generic_class_init (gpointer g_class,
-			       gpointer class_data)
+param_spec_generic_class_init (gpointer g_class
+			       G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data))
 {
   GParamSpecClass *class = g_class;
-  ParamSpecClassInfo *info = class_data;
+  ParamSpecClassInfo *info = G_INIT_FUNC_GET_CLASS(class_data);
 
   class->value_type = info->value_type;
   if (info->finalize)
@@ -1449,7 +1450,7 @@ param_spec_generic_class_init (gpointer g_class,
   if (info->value_validate)
     class->value_validate = info->value_validate;	/* optional */
   class->values_cmp = info->values_cmp;
-  g_free (class_data);
+  g_free ((gpointer)info);
 }
 
 static void

@@ -32,10 +32,10 @@
 
 
 /* --- prototypes --- */
-static void	g_enum_class_init		(GEnumClass	*class,
-						 gpointer	 class_data);
-static void	g_flags_class_init		(GFlagsClass	*class,
-						 gpointer	 class_data);
+static void	g_enum_class_init		(GEnumClass	*class
+						 G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data));
+static void	g_flags_class_init		(GFlagsClass	*class
+						 G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data));
 static void	value_flags_enum_init		(GValue		*value);
 static void	value_flags_enum_copy_value	(const GValue	*src_value,
 						 GValue		*dest_value);
@@ -304,15 +304,15 @@ g_flags_complete_type_info (GType	       g_flags_type,
 }
 
 static void
-g_enum_class_init (GEnumClass *class,
-		   gpointer    class_data)
+g_enum_class_init (GEnumClass *class
+		   G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data))
 {
   g_return_if_fail (G_IS_ENUM_CLASS (class));
   
   class->minimum = 0;
   class->maximum = 0;
   class->n_values = 0;
-  class->values = class_data;
+  class->values = G_INIT_FUNC_GET_CLASS(class_data);
   
   if (class->values)
     {
@@ -330,14 +330,14 @@ g_enum_class_init (GEnumClass *class,
 }
 
 static void
-g_flags_class_init (GFlagsClass *class,
-		    gpointer	 class_data)
+g_flags_class_init (GFlagsClass *class
+		    G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data))
 {
   g_return_if_fail (G_IS_FLAGS_CLASS (class));
   
   class->mask = 0;
   class->n_values = 0;
-  class->values = class_data;
+  class->values = G_INIT_FUNC_GET_CLASS(class_data);
   
   if (class->values)
     {

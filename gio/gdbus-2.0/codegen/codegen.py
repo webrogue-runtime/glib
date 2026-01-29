@@ -4360,7 +4360,8 @@ class CodeGenerator:
             self.outfile.write(
                 "static void\n"
                 "%s_skeleton_notify (GObject      *object,\n"
-                "  GParamSpec *pspec G_GNUC_UNUSED)\n"
+                "  GParamSpec *pspec G_GNUC_UNUSED,\n"
+                "  gpointer cb_userdata G_GNUC_UNUSED)\n"
                 "{\n"
                 "  %sSkeleton *skeleton = %s%s_SKELETON (object);\n"
                 "  g_mutex_lock (&skeleton->priv->lock);\n"

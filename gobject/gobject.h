@@ -348,7 +348,8 @@ struct  _GObjectClass
 					     GParamSpec  **pspecs);
   /* signals */
   void	     (*notify)			(GObject	*object,
-					 GParamSpec	*pspec);
+					 GParamSpec	*pspec,
+           gpointer    cb_data);
 
   /* called when done constructing */
   void	     (*constructed)		(GObject	*object);

@@ -951,7 +951,7 @@ g_application_real_after_emit (GApplication *application,
 }
 
 static void
-g_application_real_startup (GApplication *application)
+g_application_real_startup (GApplication *application, gpointer data)
 {
   application->priv->did_startup = TRUE;
 }
@@ -963,7 +963,7 @@ g_application_real_shutdown (GApplication *application)
 }
 
 static void
-g_application_real_activate (GApplication *application)
+g_application_real_activate (GApplication *application, gpointer cb_data)
 {
   if (!g_signal_has_handler_pending (application,
                                      g_application_signals[SIGNAL_ACTIVATE],
@@ -1031,7 +1031,8 @@ g_application_real_command_line (GApplication            *application,
 
 static gint
 g_application_real_handle_local_options (GApplication *application,
-                                         GVariantDict *options)
+                                         GVariantDict *options,
+                                         gpointer data)
 {
   return -1;
 }

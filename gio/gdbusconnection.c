@@ -8074,6 +8074,9 @@ g_bus_get_sync (GBusType       bus_type,
                 GCancellable  *cancellable,
                 GError       **error)
 {
+#ifdef __wasi__
+  return NULL;
+#else
   GDBusConnection *connection;
 
   _g_dbus_initialize ();
@@ -8092,6 +8095,7 @@ g_bus_get_sync (GBusType       bus_type,
 
  out:
   return connection;
+#endif
 }
 
 static void

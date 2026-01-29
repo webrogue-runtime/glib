@@ -214,8 +214,8 @@ gi_enum_info_get_storage_type (GIEnumInfo *info)
 }
 
 void
-gi_enum_info_class_init (gpointer g_class,
-                         gpointer class_data)
+gi_enum_info_class_init (gpointer g_class
+                         G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data))
 {
   GIBaseInfoClass *info_class = g_class;
 

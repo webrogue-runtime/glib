@@ -1103,6 +1103,10 @@ g_get_host_name (void)
       size = 256;
 #endif /* _SC_HOST_NAME_MAX */
       tmp = g_malloc (size);
+#ifdef __wasi__
+      failed = 0;
+      strcpy(tmp, "Webrogue");
+#else
       failed = (gethostname (tmp, size) == -1);
       if (failed && size < size_large)
         {
@@ -1111,6 +1115,7 @@ g_get_host_name (void)
           tmp = g_malloc (size_large);
           failed = (gethostname (tmp, size_large) == -1);
         }
+#endif
 
       if (failed)
         g_clear_pointer (&tmp, g_free);

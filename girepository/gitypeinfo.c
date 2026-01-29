@@ -635,8 +635,8 @@ gi_type_info_hash_pointer_from_argument (GITypeInfo *info,
 }
 
 void
-gi_type_info_class_init (gpointer g_class,
-                         gpointer class_data)
+gi_type_info_class_init (gpointer g_class
+                         G_DEFINE_INIT_FUNC_CLASS_PARAM(class_data))
 {
   GIBaseInfoClass *info_class = g_class;
 

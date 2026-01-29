@@ -139,6 +139,9 @@ void     g_list_foreach                 (GList            *list,
 					 GFunc             func,
 					 gpointer          user_data);
 GLIB_AVAILABLE_IN_ALL
+void 	 g_list_foreach_no_userdata 	(GList            *list,
+                	 					 GFuncNoUserdata   func);
+GLIB_AVAILABLE_IN_ALL
 GList*   g_list_sort                    (GList            *list,
 					 GCompareFunc      compare_func) G_GNUC_WARN_UNUSED_RESULT;
 GLIB_AVAILABLE_IN_ALL

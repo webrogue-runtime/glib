@@ -142,6 +142,17 @@ g_wakeup_new (void)
   wakeup = g_slice_new (GWakeup);
 
   /* try eventfd first, if we think we can */
+#if defined (__wasi__)
+  // /dev/wakeup is a Webrogue-specific file
+  wakeup->fds[0] = open("/dev/wakeup", O_RDWR | O_CLOEXEC);
+
+  if (wakeup->fds[0] != -1)
+    {
+      wakeup->fds[1] = -1;
+      return wakeup;
+    }
+#endif
+
 #if defined (HAVE_EVENTFD)
 #ifndef TEST_EVENTFD_FALLBACK
   wakeup->fds[0] = eventfd (0, EFD_CLOEXEC | EFD_NONBLOCK);
