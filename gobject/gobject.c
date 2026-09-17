@@ -49,7 +49,7 @@
  * methods for all object types in GTK, Pango and other libraries
  * based on GObject. The `GObject` class provides methods for object
  * construction and destruction, property access methods, and signal
- * support. Signals are described in detail [here][gobject-Signals].
+ * support. Signals are described in detail [here](signals.html).
  *
  * For a tutorial on implementing a new `GObject` class, see [How to define and
  * implement a new GObject](tutorial.html#how-to-define-and-implement-a-new-gobject).
@@ -212,7 +212,7 @@ static GQuark	            quark_weak_notifies = 0;
 static GQuark	            quark_toggle_refs = 0;
 static GQuark               quark_notify_queue;
 static GParamSpecPool      *pspec_pool = NULL; /* atomic */
-static gulong	            gobject_signals[LAST_SIGNAL] = { 0, };
+static unsigned int         gobject_signals[LAST_SIGNAL] = { 0, };
 static guint (*floating_flag_handler) (GObject*, gint) = object_floating_flag_handler;
 static GQuark	            quark_weak_locations = 0;
 
@@ -1132,11 +1132,18 @@ validate_pspec_to_install (GParamSpec *pspec)
 
   g_return_val_if_fail (pspec->flags & (G_PARAM_READABLE | G_PARAM_WRITABLE), FALSE);
 
-  if (pspec->flags & G_PARAM_CONSTRUCT)
-    g_return_val_if_fail ((pspec->flags & G_PARAM_CONSTRUCT_ONLY) == 0, FALSE);
+#ifndef G_DISABLE_CHECKS
+  if ((pspec->flags & G_PARAM_CONSTRUCT) && (pspec->flags & G_PARAM_CONSTRUCT_ONLY))
+    {
+      g_critical ("%s: property '%s' cannot have both G_PARAM_CONSTRUCT and "
+                  "G_PARAM_CONSTRUCT_ONLY flags set simultaneously",
+                  G_STRFUNC, pspec->name);
+      return FALSE;
+    }
+#endif
 
-  if (pspec->flags & (G_PARAM_CONSTRUCT | G_PARAM_CONSTRUCT_ONLY))
-    g_return_val_if_fail (pspec->flags & G_PARAM_WRITABLE, FALSE);
+  g_return_val_if_fail (!(pspec->flags & (G_PARAM_CONSTRUCT | G_PARAM_CONSTRUCT_ONLY)) ||
+                        (pspec->flags & G_PARAM_WRITABLE), FALSE);
 
   return TRUE;
 }
@@ -1156,10 +1163,8 @@ validate_and_install_class_property (GObjectClass *class,
       return FALSE;
     }
 
-  if (pspec->flags & G_PARAM_WRITABLE)
-    g_return_val_if_fail (class->set_property != NULL, FALSE);
-  if (pspec->flags & G_PARAM_READABLE)
-    g_return_val_if_fail (class->get_property != NULL, FALSE);
+  g_return_val_if_fail (!(pspec->flags & G_PARAM_WRITABLE) || class->set_property != NULL, FALSE);
+  g_return_val_if_fail (!(pspec->flags & G_PARAM_READABLE) || class->get_property != NULL, FALSE);
 
   class->flags |= CLASS_HAS_PROPS_FLAG;
   if (install_property_internal (oclass_type, property_id, pspec))
@@ -2585,7 +2590,8 @@ g_object_new_with_custom_constructor (GObjectClass          *class,
     }
 
   /* construct object from construction parameters */
-  object = class->constructor (class->g_type_class.g_type, class->n_construct_properties, cparams);
+  g_assert (class->n_construct_properties <= UINT_MAX);
+  object = class->constructor (class->g_type_class.g_type, (unsigned int) class->n_construct_properties, cparams);
   /* free construction values */
   while (cvals_used--)
     g_value_unset (&cvalues[cvals_used]);
@@ -4154,7 +4160,7 @@ object_floating_flag_handler (GObject        *object,
  * g_object_is_floating:
  * @object: (type GObject.Object): a #GObject
  *
- * Checks whether @object has a [floating][floating-ref] reference.
+ * Checks whether @object has a [floating](floating-refs.html) reference.
  *
  * Since: 2.10
  *
@@ -4173,7 +4179,7 @@ g_object_is_floating (gpointer _object)
  * @object: (type GObject.Object): a #GObject
  *
  * Increase the reference count of @object, and possibly remove the
- * [floating][floating-ref] reference, if @object has a floating reference.
+ * [floating](floating-refs.html) reference, if @object has a floating reference.
  *
  * In other words, if the object is floating, then this call "assumes
  * ownership" of the floating reference, converting it to a normal
@@ -4263,7 +4269,7 @@ g_object_take_ref (gpointer _object)
  * @object: a #GObject
  *
  * This function is intended for #GObject implementations to re-enforce
- * a [floating][floating-ref] object reference. Doing this is seldom
+ * a [floating](floating-refs.html) object reference. Doing this is seldom
  * required: all #GInitiallyUnowneds are created with a floating reference
  * which usually just needs to be sunken by calling g_object_ref_sink().
  *
@@ -6190,7 +6196,7 @@ g_weak_ref_clear (GWeakRef *weak_ref)
  * The caller should release the resulting reference in the usual way,
  * by using g_object_unref().
  *
- * Returns: (transfer full) (type GObject.Object): the object pointed to
+ * Returns: (transfer full) (type GObject.Object) (nullable): the object pointed to
  *     by @weak_ref, or %NULL if it was empty
  *
  * Since: 2.32

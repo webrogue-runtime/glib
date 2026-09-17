@@ -39,7 +39,7 @@ endif
 
 network_libs = [ ]
 network_args = [ ]
-if host_system != 'windows' and host_system != 'wasip1'
+if host_system != 'windows' and not host_system.startswith('wasi')
   # res_query()
   res_query_test = '''#include <resolv.h>
                       int main (int argc, char ** argv) {
@@ -345,6 +345,7 @@ contenttype_sources = []
 portal_sources = []
 unix_sources = []
 win32_sources = []
+have_gio_launch_desktop = false
 
 # This is also used by tests/gdbus-daemon, so use files() to include the path
 gdbus_daemon_sources = [
@@ -409,6 +410,7 @@ if host_system != 'windows'
   if glib_have_cocoa
     settings_sources += files('gnextstepsettingsbackend.m')
     contenttype_sources += files('gcontenttype-osx.m')
+    unix_sources += files('glocalfile-osx.m')
     unix_sources += files('gosxappinfo.m')
     framework_dep = dependency('appleframeworks', modules : ['Foundation', 'CoreFoundation', 'AppKit'])
     platform_deps += [framework_dep]
@@ -419,13 +421,15 @@ if host_system != 'windows'
     contenttype_sources += files('gcontenttype-fdo.c')
     unix_sources += files('gdesktopappinfo.c')
     gio_unix_include_headers += files('gdesktopappinfo.h')
-    launch_desktop_sources = files('gio-launch-desktop.c')
 
-    if host_system == 'linux'
-      launch_desktop_sources += files('../glib/gjournal-private.c')
-    endif
+    if process_spawn_allowed
+      launch_desktop_sources = files('gio-launch-desktop.c')
 
-    if host_system != 'wasip1'
+      if host_system == 'linux'
+        launch_desktop_sources += files('../glib/gjournal-private.c')
+      endif
+
+      have_gio_launch_desktop = true
       gio_launch_desktop = executable('gio-launch-desktop', launch_desktop_sources,
         dependencies: [app_profile_dep],
         include_directories : glibinc,
@@ -447,6 +451,7 @@ if host_system != 'windows'
     unix_sources += files(
       'gnetworkmonitornetlink.c',
       'gnetworkmonitornm.c',
+      'gnetworkmonitorsystemd.c',
     )
   endif
 else
@@ -551,6 +556,8 @@ gio_base_sources = files(
   'giomodule-priv.c',
   'gioscheduler.c',
   'giostream.c',
+  'giptosmessage.c',
+  'gipv6tclassmessage.c',
   'gloadableicon.c',
   'gmarshal-internal.c',
   'gmount.c',
@@ -709,6 +716,8 @@ gio_headers = files(
   'gioscheduler.h',
   'giostream.h',
   'giotypes.h',
+  'giptosmessage.h',
+  'gipv6tclassmessage.h',
   'gloadableicon.h',
   'gmount.h',
   'gmemoryinputstream.h',
@@ -1044,7 +1053,7 @@ gio_tool_sources = [
   'gio-tool-tree.c',
 ]
 
-if host_system != 'wasip1'
+if not host_system.startswith('wasi')
 gio_tool = executable('gio', gio_tool_sources,
   install : true,
   install_tag : 'bin',
@@ -1054,7 +1063,7 @@ gio_tool = executable('gio', gio_tool_sources,
   dependencies : [libgio_dep, libgobject_dep, libgmodule_dep, libglib_dep, app_profile_dep])
 endif
 
-if host_system != 'wasip1'
+if not host_system.startswith('wasi')
 executable('gresource', 'gresource-tool.c',
   install : true,
   install_tag : 'bin',
@@ -1063,7 +1072,7 @@ executable('gresource', 'gresource-tool.c',
   dependencies : [libelf, libgio_dep, libgobject_dep, libgmodule_dep, libglib_dep, app_profile_dep])
 endif
 
-if host_system != 'wasip1'
+if not host_system.startswith('wasi')
 gio_querymodules = executable('gio-querymodules', 'gio-querymodules.c', 'giomodule-priv.c',
   install : true,
   install_dir : multiarch_bindir,
@@ -1074,7 +1083,7 @@ gio_querymodules = executable('gio-querymodules', 'gio-querymodules.c', 'giomodu
   dependencies : [libgio_dep, libgobject_dep, libgmodule_dep, libglib_dep, app_profile_dep])
 endif
 
-if host_system != 'wasip1'
+if not host_system.startswith('wasi')
 glib_compile_schemas = executable('glib-compile-schemas',
   ['glib-compile-schemas.c'],
   install : true,
@@ -1085,7 +1094,7 @@ glib_compile_schemas = executable('glib-compile-schemas',
   dependencies : [libgio_dep, libgobject_dep, libgmodule_dep, libglib_dep, gvdb_dep, app_profile_dep])
 endif
 
-if host_system != 'wasip1'
+if not host_system.startswith('wasi')
 glib_compile_resources = executable('glib-compile-resources',
   [gconstructor_as_data_h, 'glib-compile-resources.c'],
   install : true,
@@ -1109,7 +1118,7 @@ if meson.can_run_host_binaries()
   meson.override_find_program('gio-querymodules', gio_querymodules)
 endif
 
-if host_system != 'wasip1'
+if not host_system.startswith('wasi')
 executable('gsettings', 'gsettings-tool.c',
   install : true,
   install_tag : 'bin',
@@ -1128,8 +1137,8 @@ install_data(['gschema.loc', 'gschema.its'],
   install_tag : 'devel',
 )
 
-if host_system != 'wasip1'
-executable('gdbus', 'gdbus-tool.c',
+if not host_system.startswith('wasi')
+gdbus_tool = executable('gdbus', 'gdbus-tool.c',
   install : true,
   install_tag : 'bin',
   c_args : gio_c_args,
@@ -1138,7 +1147,7 @@ executable('gdbus', 'gdbus-tool.c',
   dependencies : [libgio_dep, libgobject_dep, libgmodule_dep, libglib_dep, app_profile_dep])
 endif
 
-if host_system != 'windows' and not glib_have_cocoa and host_system != 'wasip1'
+if host_system != 'windows' and not glib_have_cocoa and not host_system.startswith('wasi')
   executable('gapplication', 'gapplication-tool.c',
     install : true,
     install_tag : 'bin',

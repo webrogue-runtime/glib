@@ -1176,7 +1176,7 @@ g_param_spec_pool_lookup (GParamSpecPool *pool,
 
   if (pool->type_prefixing)
     {
-      char *delim;
+      const char *delim;
 
       delim = strchr (param_name, ':');
 

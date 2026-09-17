@@ -154,7 +154,7 @@ g_environ_setenv (gchar       **envp,
     }
   else
     {
-      gint length;
+      guint length;
 
       length = envp ? g_strv_length (envp) : 0;
       envp = g_renew (gchar *, envp, length + 2);
@@ -327,6 +327,13 @@ g_setenv (const gchar *variable,
 
 #ifdef HAVE__NSGETENVIRON
 #define environ (*_NSGetEnviron())
+#elif defined(__FreeBSD__)
+/* FreeBSD has environ in crt rather than libc. Using "extern char** environ"
+ * in the code of a shared library makes it fail to link with -Wl,--no-undefined
+ * See https://reviews.freebsd.org/D30842#840642
+ */
+#include <dlfcn.h>
+#define environ (*((char***)dlsym(RTLD_DEFAULT, "environ")))
 #else
 /* According to the Single Unix Specification, environ is not
  * in any system header, although unistd.h often declares it.
@@ -404,7 +411,7 @@ gchar **
 g_listenv (void)
 {
   gchar **result, *eq;
-  gint len, i, j;
+  guint len, i, j;
 
   len = g_strv_length (environ);
   result = g_new0 (gchar *, len + 1);
@@ -636,7 +643,7 @@ gchar **
 g_listenv (void)
 {
   gchar **result, *eq;
-  gint len = 0, j;
+  size_t len = 0, j;
   wchar_t *p, *q;
 
   p = (wchar_t *) GetEnvironmentStringsW ();

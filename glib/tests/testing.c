@@ -22,6 +22,8 @@
  * if advised of the possibility of such damage.
  */
 
+#define _POSIX_C_SOURCE 200809L  /* for F_DUPFD_CLOEXEC */
+
 #include "config.h"
 
 /* We want to distinguish between messages originating from libglib
@@ -36,7 +38,6 @@
 #include <string.h>
 
 #ifdef G_OS_UNIX
-#define _POSIX_C_SOURCE 200809L  /* for F_DUPFD_CLOEXEC */
 #include <fcntl.h>
 #include <glib-unix.h>
 #include <unistd.h>
@@ -362,6 +363,20 @@ test_subprocess_fail (void)
   g_test_trap_subprocess (NULL, 0, G_TEST_SUBPROCESS_DEFAULT);
   g_test_trap_assert_failed ();
   g_test_trap_assert_stderr ("*ERROR*test_subprocess_fail*should not be reached*");
+}
+
+static void
+test_subprocess_skip (void)
+{
+  if (g_test_subprocess ())
+    {
+      g_test_skip ("");
+      return;
+    }
+
+  g_test_trap_subprocess (NULL, 0, G_TEST_SUBPROCESS_DEFAULT);
+  g_assert_true (g_test_trap_has_skipped ());
+  g_assert_true (!g_test_trap_has_passed ());
 }
 
 static void
@@ -2970,6 +2985,7 @@ main (int   argc,
 #endif
 
   g_test_add_func ("/trap_subprocess/fail", test_subprocess_fail);
+  g_test_add_func ("/trap_subprocess/skip", test_subprocess_skip);
   g_test_add_func ("/trap_subprocess/no-such-test", test_subprocess_no_such_test);
   g_test_add_func ("/trap_subprocess/timeout", test_subprocess_timeout);
   g_test_add_func ("/trap_subprocess/envp", test_subprocess_envp);

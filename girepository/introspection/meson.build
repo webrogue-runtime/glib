@@ -27,10 +27,10 @@ endif
 if host_system == 'windows'
   # Use gio-2.0-uninstalled.pc to find the paths where the GLib DLLs (and their dependent non-system
   # DLLs that are built as subprojects) are located
-  check_built_dll_paths_cmd = [get_dll_paths_script, '--build-path=@0@'.format(meson.project_build_root())]
+  check_built_dll_paths_cmd = [get_dll_paths_script, '--build-path=@0@'.format(meson.global_build_root())]
   meson_pkgconfig_paths = get_option('pkg_config_path')
   if meson_pkgconfig_paths.length() > 0
-    check_built_dll_paths_cmd += '--pkg-config-path=@0@'.format(''.join(meson_pkgconfig_paths))
+    check_built_dll_paths_cmd += '--pkg-config-path=@0@'.format(';'.join(meson_pkgconfig_paths))
   endif
   check_built_dll_paths = run_command(
     check_built_dll_paths_cmd,
@@ -64,17 +64,6 @@ glib_gir_sources = [
   files('../../glib/docs.c'),
 ]
 
-# For API compatibility reasons, GLib-2.0.gir needs to contain the platform
-# specific APIs which are also present in the (newer) GLibUnix-2.0.gir and
-# GLibWin32-2.0.gir repositories.
-# See https://gitlab.gnome.org/GNOME/glib/-/merge_requests/3892#note_2001361
-# These can be dropped when GLib next breaks API (i.e. with GLib-3.0.gir).
-if host_system == 'windows'
-  glib_gir_sources += files('../../glib/gwin32.h')
-else
-  glib_gir_sources += files('../../glib/glib-unix.h')
-endif
-
 glib_gir = gnome.generate_gir(libglib,
   sources: glib_gir_sources,
   namespace: 'GLib',
@@ -103,6 +92,7 @@ if host_system == 'windows'
     sources: [
       gi_gen_shared_sources,
       glib_win32_headers,
+      glib_win32_sources,
     ],
     namespace: 'GLibWin32',
     nsversion: '2.0',
@@ -132,6 +122,7 @@ else
     sources: [
       gi_gen_shared_sources,
       glib_unix_headers,
+      glib_unix_sources,
     ],
     namespace: 'GLibUnix',
     nsversion: '2.0',

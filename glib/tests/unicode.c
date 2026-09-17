@@ -542,8 +542,7 @@ test_turkish_strupdown (void)
   if (oldlocale == NULL)
     {
       g_test_skip ("locale tr_TR not available");
-      g_free (old_lang);
-      return;
+      goto out;
     }
 
 #ifdef G_OS_WIN32
@@ -568,9 +567,12 @@ test_turkish_strupdown (void)
   g_free (str_up);
   g_free (str_down);
 
-  setlocale (LC_ALL, oldlocale);
+out:
+  if (oldlocale != NULL)
+    setlocale (LC_ALL, oldlocale);
 #ifdef G_OS_WIN32
-  SetThreadLocale (old_lcid);
+  if (oldlocale != NULL)
+    SetThreadLocale (old_lcid);
 #endif
   g_free (oldlocale);
   if (old_lc_all)
@@ -623,6 +625,7 @@ test_casemap_and_casefold (void)
   const char *locale;
   const char *test;
   const char *expected;
+  size_t line = 0;
   char *convert;
   char *current_locale = setlocale (LC_CTYPE, NULL);
   char *old_lc_all, *old_lc_messages, *old_lang;
@@ -643,6 +646,7 @@ test_casemap_and_casefold (void)
 
   while (fgets (buffer, sizeof (buffer), infile))
     {
+      line++;
       if (buffer[0] == '#')
         continue;
 
@@ -668,6 +672,8 @@ test_casemap_and_casefold (void)
         SetThreadLocale (MAKELCID (MAKELANGID (LANG_LITHUANIAN, SUBLANG_LITHUANIAN), SORT_DEFAULT));
       else if (strstr (locale, "tr_TR"))
         SetThreadLocale (MAKELCID (MAKELANGID (LANG_TURKISH, SUBLANG_TURKISH_TURKEY), SORT_DEFAULT));
+      else if (strstr (locale, "az_AZ"))
+        SetThreadLocale (MAKELCID (MAKELANGID (LANG_AZERBAIJANI, SUBLANG_AZERBAIJANI_AZERBAIJAN_LATIN), SORT_DEFAULT));
       else
         SetThreadLocale (old_lcid);
 #endif
@@ -685,6 +691,10 @@ test_casemap_and_casefold (void)
 
       convert = g_utf8_strup (test, -1);
       expected = strings[4][0] ? strings[4] : test;
+      g_test_message ("Converting '%s' => '%s' [expected '%s'] "
+                      "(line %" G_GSIZE_FORMAT ")",
+                      test, convert, expected, line);
+
       g_assert_cmpstr (convert, ==, expected);
       g_free (convert);
 
@@ -704,9 +714,11 @@ test_casemap_and_casefold (void)
 
   infile = g_fopen (filename, "re");
   g_assert (infile != NULL);
+  line = 0;
 
   while (fgets (buffer, sizeof (buffer), infile))
     {
+      line++;
       if (buffer[0] == '#')
         continue;
 
@@ -716,6 +728,10 @@ test_casemap_and_casefold (void)
       test = strings[0];
 
       convert = g_utf8_casefold (test, -1);
+      g_test_message ("Converting '%s' => '%s' [expected '%s'] "
+                      "(line %" G_GSIZE_FORMAT ")",
+                      test, convert, strings[1], line);
+
       g_assert_cmpstr (convert, ==, strings[1]);
       g_free (convert);
 
@@ -2102,6 +2118,118 @@ test_normalize (void)
 #undef TEST
 }
 
+static void
+test_unknown_scripts (void)
+{
+  gunichar ch;
+  GUnicodeScript max_script;
+
+  max_script = G_UNICODE_SCRIPT_INVALID_CODE;
+  for (ch = 0; ch <= 0x10FFFF; ch++)
+    max_script = MAX (max_script, g_unichar_get_script (ch));
+
+#define PACK(a, b, c, d) \
+  ((guint32) ((((guint8) (a)) << 24) | (((guint8) (b)) << 16) | (((guint8) (c)) << 8) | ((guint8) (d))))
+
+  for (GUnicodeScript i = 0; i <= max_script; i++)
+    {
+      g_test_message ("Testing script %d", i);
+
+      guint32 tag = g_unicode_script_to_iso15924 (i);
+      if (i == G_UNICODE_SCRIPT_UNKNOWN)
+        g_assert_cmphex (tag, ==, PACK ('Z', 'z', 'z', 'z'));
+      else
+        g_assert_cmphex (tag, !=, PACK ('Z', 'z', 'z', 'z'));
+
+      GUnicodeScript script = g_unicode_script_from_iso15924 (tag);
+      g_assert_cmpint (script, ==, i);
+    }
+
+#undef PACK
+}
+
+static void
+test_strupdown_length (void)
+{
+  char *result;
+  char *oldlocale;
+  char *old_lc_all, *old_lc_messages, *old_lang;
+#ifdef G_OS_WIN32
+  LCID old_lcid;
+
+  old_lcid = GetThreadLocale ();
+#endif
+
+  /* U+0345 COMBINING GREEK YPOGEGRAMMENI triggers append_mark() in strup.
+   * Verify that a combining mark (U+0308) placed after max_len is not
+   * picked up by append_mark().
+   */
+  result = g_utf8_strup ("a" "\xCD\x85" "\xCC\x88", 3);
+  g_assert_cmpstr (result, ==, "A" "\xCE\x99");
+  g_free (result);
+
+  save_and_clear_env ("LC_ALL", &old_lc_all);
+  save_and_clear_env ("LC_MESSAGES", &old_lc_messages);
+  save_and_clear_env ("LANG", &old_lang);
+
+  /* Turkic locale: I + COMBINING DOT ABOVE => i, but only when the
+   * combining dot is within max_len.  With max_len=1 the dot is past
+   * the limit, so I should become DOTLESS I (U+0131) instead of i.
+   */
+  oldlocale = g_strdup (setlocale (LC_ALL, "tr_TR"));
+  if (oldlocale != NULL)
+    {
+#ifdef G_OS_WIN32
+      SetThreadLocale (MAKELCID (MAKELANGID (LANG_TURKISH, SUBLANG_TURKISH_TURKEY), SORT_DEFAULT));
+#endif
+
+      result = g_utf8_strdown ("I" "\xCC\x87", 1);
+      g_assert_cmpstr (result, ==, "\xC4\xB1");
+      g_free (result);
+
+      setlocale (LC_ALL, oldlocale);
+    }
+  else
+    g_test_message ("locale tr_TR not available, skipping Turkic test");
+  g_free (oldlocale);
+
+  /* Lithuanian locale: I + COMBINING ACUTE ACCENT (class 230) makes
+   * has_more_above() return TRUE and inserts a dot above.  With
+   * max_len=1 the accent is past the limit, so the result should be
+   * just a plain lowercase 'i'.
+   */
+  oldlocale = g_strdup (setlocale (LC_ALL, "lt_LT"));
+  if (oldlocale != NULL)
+    {
+#ifdef G_OS_WIN32
+      SetThreadLocale (MAKELCID (MAKELANGID (LANG_LITHUANIAN, SUBLANG_LITHUANIAN), SORT_DEFAULT));
+#endif
+
+      result = g_utf8_strdown ("I" "\xCC\x81", 1);
+      g_assert_cmpstr (result, ==, "i");
+      g_free (result);
+
+      setlocale (LC_ALL, oldlocale);
+    }
+  else
+    g_test_message ("locale lt_LT not available, skipping Lithuanian test");
+  g_free (oldlocale);
+
+#ifdef G_OS_WIN32
+  SetThreadLocale (old_lcid);
+#endif
+
+  if (old_lc_all)
+    g_setenv ("LC_ALL", old_lc_all, TRUE);
+  if (old_lc_messages)
+    g_setenv ("LC_MESSAGES", old_lc_messages, TRUE);
+  if (old_lang)
+    g_setenv ("LANG", old_lang, TRUE);
+  g_free (old_lc_all);
+  g_free (old_lc_messages);
+  g_free (old_lang);
+}
+
 int
 main (int   argc,
       char *argv[])
@@ -2138,6 +2266,7 @@ main (int   argc,
   g_test_add_func ("/unicode/space", test_space);
   g_test_add_func ("/unicode/strdown", test_strdown);
   g_test_add_func ("/unicode/strup", test_strup);
+  g_test_add_func ("/unicode/strupdown-length", test_strupdown_length);
   g_test_add_func ("/unicode/turkish-strupdown", test_turkish_strupdown);
   g_test_add_func ("/unicode/title", test_title);
   g_test_add_func ("/unicode/upper", test_upper);
@@ -2148,6 +2277,7 @@ main (int   argc,
   g_test_add_func ("/unicode/xdigit-value", test_xdigit_value);
   g_test_add_func ("/unicode/zero-width", test_zerowidth);
   g_test_add_func ("/unicode/normalize", test_normalize);
+  g_test_add_func ("/unicode/unknown-scripts", test_unknown_scripts);
 
   return g_test_run();
 }

@@ -78,6 +78,7 @@ glib_tests = {
     'link_args' : cc.get_id() == 'gcc' and cc.version().version_compare('> 6')
       ? ['-Wno-alloc-size-larger-than'] : [],
   },
+  'monotonic-time' : {},
   'mutex' : {},
   'node' : {},
   'once' : {},
@@ -191,8 +192,6 @@ glib_tests = {
   '1bit-emufutex' : {
     'source' : '1bit-mutex.c',
     'c_args' : ['-DTEST_EMULATED_FUTEX'],
-    # FIXME: https://gitlab.gnome.org/GNOME/glib/-/issues/3359
-    'can_fail': 'undefined' in glib_sanitizers,
     'install' : false,
     'suite' : ['slow'],
   },
@@ -256,10 +255,14 @@ if host_machine.system() == 'windows'
     'win32-private' : {
       'dependencies' : [winsock2],
     },
+    'win32-helper-path-private' : {
+      'source' : 'win32-helper-path.c',
+    },
   }
 else
   glib_tests += {
     'include' : {},
+    'poll-fdset' : {},
     'unix' : {},
   }
   if have_rtld_next and glib_build_shared
@@ -271,7 +274,7 @@ else
                                       install_tag : 'tests',
                                       install: installed_tests_enabled)
 
-    if host_system not in ['ios', 'darwin']
+    if host_system != 'darwin'
       var_preload = 'LD_PRELOAD'
     else
       var_preload = 'DYLD_INSERT_LIBRARIES'
@@ -400,8 +403,8 @@ test_env = environment()
 test_env.set('G_TEST_SRCDIR', meson.current_source_dir())
 test_env.set('G_TEST_BUILDDIR', meson.current_build_dir())
 
-test_deps = [libm, thread_dep, libglib_dep, app_profile_dep]
-test_deps_static = [libm, thread_dep, libglib_static_dep, app_profile_dep]
+test_deps = [libm, thread_dep, libglib_dep, test_profile_dep]
+test_deps_static = [libm, thread_dep, libglib_static_dep, test_profile_dep]
 test_cargs = ['-DG_LOG_DOMAIN="GLib"', '-UG_DISABLE_ASSERT']
 test_cpp_args = test_cargs
 
@@ -440,7 +443,7 @@ foreach test_name, extra_args : glib_tests
     if installed_tests_env != {}
       envs = []
       foreach var, value : installed_tests_env
-         envs += '@0@=@1@'.format(var, value)
+        envs += '@0@=\'@1@\''.format(var, value)
       endforeach
       test_env_override = '@0@ @1@ '.format(env_program.full_path(), ' '.join(envs))
     endif

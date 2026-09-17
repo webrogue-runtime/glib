@@ -155,7 +155,7 @@ libgobject = library('gobject-2.0',
   install : true,
   include_directories : [configinc],
   dependencies : [libffi_dep, libglib_dep],
-  c_args : ['-DG_LOG_DOMAIN="GLib-GObject"', '-DGOBJECT_COMPILATION', warning_sign_conversion_args],
+  c_args : ['-DG_LOG_DOMAIN="GLib-GObject"', '-DGOBJECT_COMPILATION', warning_sign_conversion_args, warning_shorten_64_to_32_args],
   gnu_symbol_visibility : 'hidden',
   link_args : glib_link_flags,
 )
@@ -176,7 +176,7 @@ libgobject_dep = declare_dependency(link_with : libgobject,
 )
 meson.override_dependency('gobject-2.0', libgobject_dep)
 
-if host_system != 'wasip1'
+if not host_system.startswith('wasi')
 gobject_query = executable('gobject-query', 'gobject-query.c',
   install : true,
   install_tag : 'bin-devel',

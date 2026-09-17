@@ -52,11 +52,6 @@ struct _GEmblem
   GEmblemOrigin origin;
 };
 
-struct _GEmblemClass
-{
-  GObjectClass parent_class;
-};
-
 enum
 {
   PROP_0_GEMBLEM,
@@ -323,6 +318,9 @@ g_emblem_from_tokens (gchar  **tokens,
   GIcon *icon;
   GEmblemOrigin origin;
   uint64_t origin_parsed;
+
+  /* This is guaranteed by the GIcon interface */
+  g_assert (num_tokens >= 0);
 
   emblem = NULL;
 

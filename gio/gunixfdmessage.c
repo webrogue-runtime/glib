@@ -149,7 +149,7 @@ g_unix_fd_message_set_property (GObject *object, guint prop_id,
   GUnixFDMessage *message = G_UNIX_FD_MESSAGE (object);
 
   g_assert (message->priv->list == NULL);
-  g_assert_cmpint (prop_id, ==, 1);
+  g_assert (prop_id == 1);
 
   message->priv->list = g_value_dup_object (value);
 
@@ -181,7 +181,7 @@ g_unix_fd_message_get_property (GObject *object, guint prop_id,
 {
   GUnixFDMessage *message = G_UNIX_FD_MESSAGE (object);
 
-  g_assert_cmpint (prop_id, ==, 1);
+  g_assert (prop_id == 1);
 
   g_value_set_object (value, g_unix_fd_message_get_fd_list (message));
 }

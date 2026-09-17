@@ -16,13 +16,25 @@ girepository_tests = {
 # Some tests require GIR files to have been generated
 if enable_gir
   glib_gir_testing_dep = glib_gir
+  if host_system == 'windows'
+    glib_platform_gir_testing_dep = [
+      glib_gir_testing_dep,
+      glib_win32_gir,
+    ]
+  else
+    glib_platform_gir_testing_dep = [
+      glib_gir_testing_dep,
+      glib_unix_gir,
+    ]
+  endif
+
   gobject_gir_testing_dep = [
-    glib_gir_testing_dep,
+    glib_platform_gir_testing_dep,
     gobject_gir,
   ]
 
   gmodule_gir_testing_dep = [
-    glib_gir_testing_dep,
+    glib_platform_gir_testing_dep,
     gmodule_gir,
   ]
 
@@ -44,14 +56,15 @@ if enable_gir
 
   girepository_tests += {
     'callable-info' : {
+      'dependencies': [libffi_dep],
       'depends': gio_gir_testing_dep,
     },
     'field-info' : {
-      'depends': glib_gir_testing_dep,
+      'depends': glib_platform_gir_testing_dep,
     },
     'function-info' : {
       'dependencies': [libffi_dep],
-      'depends': glib_gir_testing_dep,
+      'depends': glib_platform_gir_testing_dep,
     },
     'ir-parser' : {
       'dependencies': [libgirepository_internals_dep],
@@ -68,7 +81,7 @@ if enable_gir
     },
     'repository-search-paths' : {
       'c_args': '-DGOBJECT_INTROSPECTION_LIBDIR="@0@"'.format(glib_libdir),
-      'depends': glib_gir_testing_dep,
+      'depends': glib_platform_gir_testing_dep,
     },
     'struct-info' : {
       'depends': gobject_gir_testing_dep,
@@ -77,7 +90,7 @@ if enable_gir
       'depends': gio_gir_testing_dep,
     },
     'union-info' : {
-      'depends': glib_gir_testing_dep,
+      'depends': glib_platform_gir_testing_dep,
     },
   }
 
@@ -96,7 +109,7 @@ test_env = environment()
 test_env.set('G_TEST_SRCDIR', meson.current_source_dir())
 test_env.set('G_TEST_BUILDDIR', meson.current_build_dir())
 
-test_deps = [libm, thread_dep, libgirepository_dep, app_profile_dep]
+test_deps = [libm, thread_dep, libgirepository_dep, test_profile_dep]
 test_cargs = ['-DG_LOG_DOMAIN="GIRepository"', '-UG_DISABLE_ASSERT', warning_sign_conversion_args]
 test_cpp_args = test_cargs
 
@@ -113,7 +126,7 @@ foreach test_name, extra_args : girepository_tests
     if installed_tests_env != {}
       envs = []
       foreach var, value : installed_tests_env
-         envs += '@0@=@1@'.format(var, value)
+        envs += '@0@=\'@1@\''.format(var, value)
       endforeach
       test_env_override = '@0@ @1@ '.format(env_program.full_path(), ' '.join(envs))
     endif

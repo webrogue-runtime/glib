@@ -1458,7 +1458,7 @@ do_lookup_records (const gchar          *rrname,
 #endif
 
       /* If answer fit in the buffer then we're done */
-      if (len < 0 || len < (gint)answer->len)
+      if (len < 0 || (guint) len < answer->len)
         break;
 
       /*

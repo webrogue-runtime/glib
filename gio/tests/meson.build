@@ -101,7 +101,14 @@ gio_tests = {
   'file-enumerator' : {},
   'inet-address' : {},
   'io-stream' : {},
-  'max-version' : {'install' : false},
+  'iptosmessage' : {
+    # FIXME: https://gitlab.gnome.org/GNOME/glib/-/issues/3906
+    'can_fail' : host_system in ['freebsd'],
+  },
+  'max-version' : {
+    'install' : false,
+    'c_args' : c_standards.has_key('99') ? [c_standards['99']] : [],
+  },
   'memory-input-stream' : {},
   'memory-monitor' : {},
   'memory-output-stream' : {},
@@ -158,6 +165,7 @@ gio_tests = {
 if host_system == 'linux'
   gio_tests += {
     'memory-monitor-psi' : {},
+    'memory-monitor-psi-env-set' :{},
   }
 endif
 
@@ -209,8 +217,15 @@ python_tests = {
     'suite': ['gdbus-codegen', 'slow'],
     'timeout': 90,
   },
+  'gdbus-tool.py' : {
+    'depends' : gdbus_tool,
+    'env': {'_G_TEST_PROGRAM_RUNNER_PATH': fs.parent(gdbus_tool.full_path())},
+  },
   'gio-tool.py' : {
-    'depends' : gio_tool,
+    'depends' : [
+      gio_tool,
+      have_gio_launch_desktop ? gio_launch_desktop : [],
+    ],
     'env': {'_G_TEST_PROGRAM_RUNNER_PATH': fs.parent(gio_tool.full_path())},
     'can_fail' : host_system == 'windows',
   },
@@ -221,7 +236,7 @@ test_env.set('G_TEST_SRCDIR', meson.current_source_dir())
 test_env.set('G_TEST_BUILDDIR', meson.current_build_dir())
 test_env.set('GIO_MODULE_DIR', '')
 
-if host_system != 'windows' and not glib_have_cocoa
+if have_gio_launch_desktop
   test_env.set('GIO_LAUNCH_DESKTOP', gio_launch_desktop.full_path())
 endif
 
@@ -327,8 +342,6 @@ if host_machine.system() != 'windows'
     'g-file-info-filesystem-readonly' : {},
     'gschema-compile' : {'install' : false},
     'trash' : {
-      # FIXME: https://gitlab.gnome.org/GNOME/glib/-/issues/3069
-      'can_fail' : host_system == 'darwin',
     },
   }
 
@@ -338,24 +351,25 @@ if host_machine.system() != 'windows'
       asan_env = {'ASAN_OPTIONS': 'verify_asan_link_order=0'}
     endif
 
+    slow_connect_preload_lib = shared_library('slow-connect-preload',
+      'slow-connect-preload.c',
+      name_prefix : '',
+      dependencies: libdl_dep,
+      install_dir : installed_tests_execdir,
+      install_tag : 'tests',
+      install: installed_tests_enabled,
+    )
+
     gio_tests += {
       'gsocketclient-slow' : {
-        'depends' : [
-          shared_library('slow-connect-preload',
-            'slow-connect-preload.c',
-            name_prefix : '',
-            dependencies: libdl_dep,
-            install_dir : installed_tests_execdir,
-            install_tag : 'tests',
-            install: installed_tests_enabled,
-          )
-        ],
+        'depends' : slow_connect_preload_lib,
         'env' : {
-          'LD_PRELOAD': '@0@/slow-connect-preload.so'.format(meson.current_build_dir())
+          'LD_PRELOAD': slow_connect_preload_lib.full_path(),
         } + asan_env,
         'installed_tests_env' : {
-          'LD_PRELOAD': '@0@/slow-connect-preload.so'.format(installed_tests_execdir),
         } + asan_env,
+          'LD_PRELOAD': installed_tests_execdir /
+            fs.name(slow_connect_preload_lib.full_path()),
       },
     }
   endif
@@ -466,6 +480,7 @@ if host_machine.system() != 'windows'
       },
       'fdo-notification-backend': {},
       'gdbus-auth' : {'extra_sources' : extra_sources},
+      'gdbus-auth-mechanism-sha1': {'extra_sources' : extra_sources},
       'gdbus-bz627724' : {'extra_sources' : extra_sources},
       'gdbus-close-pending' : {'extra_sources' : extra_sources},
       'gdbus-connection' : {
@@ -633,7 +648,7 @@ if host_machine.system() != 'windows'
   # This test is currently unreliable
   executable('gdbus-overflow', 'gdbus-overflow.c',
       c_args : test_c_args,
-      dependencies : common_gio_tests_deps + [app_profile_dep],
+      dependencies : common_gio_tests_deps + [test_profile_dep],
       install_dir : installed_tests_execdir,
       install_tag : 'tests',
       install : installed_tests_enabled)
@@ -1111,6 +1126,7 @@ if not meson.is_cross_build()
     'resources' : {
       'c_args' : resources_c_args,
       'extra_sources' : resources_extra_sources,
+      'dependencies' : [gvdb_dep],
       'depends' : resource_plugin,
       # FIXME: musl: https://gitlab.gnome.org/GNOME/glib/-/issues/3160
       'can_fail' : linux_libc == 'musl',
@@ -1127,7 +1143,7 @@ foreach program_name, extra_args : test_extra_programs
     program_name : executable(program_name,
       sources: [source, extra_sources],
       c_args : test_c_args,
-      dependencies : common_gio_tests_deps + extra_args.get('dependencies', []) + [app_profile_dep],
+      dependencies : common_gio_tests_deps + extra_args.get('dependencies', []) + [test_profile_dep],
       install_dir : installed_tests_execdir,
       install_tag : 'tests',
       install : install,
@@ -1149,7 +1165,7 @@ foreach test_name, extra_args : gio_tests
     if installed_tests_env != {}
       envs = []
       foreach var, value : installed_tests_env
-         envs += '@0@=@1@'.format(var, value)
+        envs += '@0@=\'@1@\''.format(var, value)
       endforeach
       test_env_override = '@0@ @1@ '.format(env_program.full_path(), ' '.join(envs))
     endif
@@ -1166,7 +1182,7 @@ foreach test_name, extra_args : gio_tests
   exe = executable(test_name, [source, extra_sources],
     c_args : test_c_args + extra_args.get('c_args', []),
     cpp_args : test_cpp_args + extra_args.get('cpp_args', []),
-    dependencies : common_gio_tests_deps + extra_args.get('dependencies', []) + [app_profile_dep],
+    dependencies : common_gio_tests_deps + extra_args.get('dependencies', []) + [test_profile_dep],
     install_rpath : extra_args.get('install_rpath', ''),
     install_dir: installed_tests_execdir,
     install_tag: 'tests',

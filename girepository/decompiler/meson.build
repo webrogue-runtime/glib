@@ -15,7 +15,7 @@ if cc.get_id() != 'msvc'
   ])
 endif
 
-if host_system != 'wasip1'
+if not host_system.startswith('wasi')
 gidecompiletypelib = executable('gi-decompile-typelib', 'decompiler.c',
   dependencies: [
     libgirepository_dep,

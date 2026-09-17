@@ -681,8 +681,10 @@ g_strtod (const gchar *nptr,
  *
  * If the correct value would cause overflow, plus or minus `HUGE_VAL`
  * is returned (according to the sign of the value), and `ERANGE` is
- * stored in `errno`. If the correct value would cause underflow,
- * zero is returned and `ERANGE` is stored in `errno`.
+ * stored in `errno`. If the correct value would cause underflow, a value
+ * whose magnitude is no greater than the smallest normalised positive number
+ * is returned; whether `ERANGE` is set is implementation-defined (it may
+ * not be set for gradual underflow where a subnormal value is returned).
  *
  * This function resets `errno` before calling `strtod()` so that
  * you can reliably detect overflow and underflow.
@@ -2402,7 +2404,7 @@ g_strsplit (const gchar *string,
             const gchar *delimiter,
             gint         max_tokens)
 {
-  char *s;
+  const char *s;
   const gchar *remainder;
   GPtrArray *string_list;
 
@@ -2447,23 +2449,28 @@ g_strsplit (const gchar *string,
 /**
  * g_strsplit_set:
  * @string: a string to split
- * @delimiters: a string containing characters that are used to split the
- *   string. Can be empty, which will result in no string splitting
+ * @delimiters: (array zero-terminated=1) (element-type guint8): a
+ *   nul-terminated byte array containing bytes that are used to
+ *   split the string; can be empty (just a nul byte), which will result in no
+ *   string splitting
  * @max_tokens: the maximum number of tokens to split @string into.
  *   If this is less than 1, the string is split completely
  *
- * Splits @string into a number of tokens not containing any of the characters
- * in @delimiters. A token is the (possibly empty) longest string that does not
- * contain any of the characters in @delimiters. If @max_tokens is reached, the
- * remainder is appended to the last token.
+ * Splits @string into a number of tokens not containing any of the
+ * bytes in @delimiters.
  *
- * For example, the result of g_strsplit_set ("abc:def/ghi", ":/", -1) is an
- * array containing the three strings "abc", "def", and "ghi".
+ * A token is the (possibly empty) longest string that does not
+ * contain any of the bytes in @delimiters. Note that separators
+ * will only be single bytes from @delimiters. If @max_tokens is reached,
+ * the remainder is appended to the last token.
  *
- * The result of g_strsplit_set (":def/ghi:", ":/", -1) is an array containing
- * the four strings "", "def", "ghi", and "".
+ * For example, the result of `g_strsplit_set ("abc:def/ghi", ":/", -1)`
+ * is an array containing the three strings `"abc"`, `"def"`, and `"ghi"`.
  *
- * As a special case, the result of splitting the empty string "" is an empty
+ * The result of `g_strsplit_set (":def/ghi:/x", ":/", -1)` is an array
+ * containing the five strings `""`, `"def"`, `"ghi"`, `""`, `"x"`.
+ *
+ * As a special case, the result of splitting the empty string `""` is an empty
  * array, not an array containing a single string. The reason for this
  * special case is that being able to represent an empty array is typically
  * more useful than consistent handling of empty elements. If you do need
@@ -2773,7 +2780,7 @@ g_strstr_len (const gchar *haystack,
   g_return_val_if_fail (needle != NULL, NULL);
 
   if (haystack_len < 0)
-    return strstr (haystack, needle);
+    return (gchar *)strstr (haystack, needle);
   else
     {
       const gchar *p = haystack;

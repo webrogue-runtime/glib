@@ -147,6 +147,7 @@ install_headers(glib_headers, install_dir : glib_includedir)
 
 if host_system != 'windows'
   glib_unix_headers = files('glib-unix.h')
+  glib_unix_sources = files('glib-unix.c')
   install_headers(glib_unix_headers, install_dir : glib_includedir)
 endif
 
@@ -250,6 +251,7 @@ install_headers(glib_sub_headers, install_dir : glib_sub_includedir)
 
 if host_system == 'windows'
   glib_win32_headers = files('gwin32.h')
+  glib_win32_sources = files('gwin32.c')
   install_headers(glib_win32_headers, install_dir : glib_sub_includedir)
 endif
 
@@ -378,7 +380,12 @@ if host_system == 'windows'
     glib_sources += files('dirent/wdirent.c')
   endif
 else
-  glib_sources += files('glib-unix.c', 'gspawn-posix.c', 'giounix.c')
+  glib_sources += files('glib-unix.c', 'giounix.c')
+  if process_spawn_allowed
+    glib_sources += files('gspawn-posix.c')
+  else
+    glib_sources += files('gspawn-unsupported.c')
+  endif
   platform_deps = []
 endif
 
@@ -498,7 +505,7 @@ meson.override_dependency('glib-2.0', libglib_dep)
 # glib_compile_resources in the build process. We can drop this when
 # https://github.com/mesonbuild/meson/issues/13385 is fixed.
 gspawn_helpers = []
-if host_system == 'wasip1'
+if host_system.startswith('wasi')
 # On Windows, glib needs a spawn helper for g_spawn* API
 elif host_system == 'windows'
   if host_machine.cpu_family() == 'x86'

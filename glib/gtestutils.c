@@ -60,6 +60,10 @@
 #endif /* HAVE_SYS_SELECT_H */
 #include <glib/gstdio.h>
 
+#ifdef __APPLE__
+#include <TargetConditionals.h>
+#endif
+
 #include "gmain.h"
 #include "gpattern.h"
 #include "grand.h"
@@ -194,30 +198,6 @@
  * with a destroy callback of g_object_unref().
  *
  * Since: 2.16
- */
-
-/**
- * GTestSubprocessFlags:
- * @G_TEST_SUBPROCESS_DEFAULT: Default behaviour. Since: 2.74
- * @G_TEST_SUBPROCESS_INHERIT_STDIN: If this flag is given, the child
- *   process will inherit the parent's stdin. Otherwise, the child's
- *   stdin is redirected to `/dev/null`.
- * @G_TEST_SUBPROCESS_INHERIT_STDOUT: If this flag is given, the child
- *   process will inherit the parent's stdout. Otherwise, the child's
- *   stdout will not be visible, but it will be captured to allow
- *   later tests with [func@GLib.test_trap_assert_stdout].
- * @G_TEST_SUBPROCESS_INHERIT_STDERR: If this flag is given, the child
- *   process will inherit the parent's stderr. Otherwise, the child's
- *   stderr will not be visible, but it will be captured to allow
- *   later tests with [func@GLib.test_trap_assert_stderr].
- * @G_TEST_SUBPROCESS_INHERIT_DESCRIPTORS: If this flag is given, the
- *   child process will inherit the parent’s open file descriptors.
- *
- * Flags to pass to [func@GLib.test_trap_subprocess] to control input and output.
- *
- * Note that in contrast with [func@GLib.test_trap_fork], the default
- * behavior of [func@GLib.test_trap_subprocess] is to not show stdout
- * and stderr.
  */
 
 /**
@@ -673,6 +653,7 @@ GLIB_VAR char *__glib_assert_msg;
 char *__glib_assert_msg = NULL;
 
 /* --- constants --- */
+#define G_TEST_STATUS_SKIPPED 77
 #define G_TEST_STATUS_TIMED_OUT 1024
 
 /* --- structures --- */
@@ -807,7 +788,17 @@ g_test_print_handler_full (const gchar *string,
 
   if (G_LIKELY (use_tap_format) && strchr (string, '\n') != NULL)
     {
-      static gboolean last_had_final_newline = TRUE;
+      static GPrivate last_had_newline_key = G_PRIVATE_INIT (g_free);
+      gboolean *last_had_final_newline = g_private_get (&last_had_newline_key);
+
+      if G_UNLIKELY (last_had_final_newline == NULL)
+        {
+          last_had_final_newline = g_new0 (gboolean, 1);
+          *last_had_final_newline = TRUE;
+          g_private_set (&last_had_newline_key, last_had_final_newline);
+          g_ignore_leak (last_had_final_newline);
+        }
+
       GString *output = g_string_new_len (NULL, strlen (string) + 2);
       const char *line = string;
 
@@ -815,7 +806,8 @@ g_test_print_handler_full (const gchar *string,
         {
           const char *next = strchr (line, '\n');
 
-          if (last_had_final_newline && (next || *line != '\0'))
+          if ((next || *line != '\0') &&
+              *last_had_final_newline)
             {
               for (unsigned l = 0; l < subtest_level; ++l)
                 g_string_append (output, TAP_SUBTEST_PREFIX);
@@ -832,7 +824,7 @@ g_test_print_handler_full (const gchar *string,
           else
             {
               g_string_append (output, line);
-              last_had_final_newline = (*line == '\0');
+              *last_had_final_newline = (*line == '\0');
             }
 
           line = next;
@@ -892,6 +884,13 @@ g_test_log_type_name (GTestLogType log_type)
   return "???";
 }
 
+/* Whether g_test_log_send() will do anything, or whether it’s a no-op. */
+static gboolean
+g_test_log_send_needed (void)
+{
+  return (test_log_fd >= 0 || test_debug_log);
+}
+
 static void
 g_test_log_send (guint         n_bytes,
                  const guint8 *buffer)
@@ -947,10 +946,6 @@ g_test_log (GTestLogType lbit,
 {
   GTestResult result;
   gboolean fail;
-  GTestLogMsg msg;
-  gchar *astrings[3] = { NULL, NULL, NULL };
-  guint8 *dbuffer;
-  guint32 dbufferlen;
   unsigned subtest_level;
   gdouble timing;
 
@@ -1132,16 +1127,25 @@ g_test_log (GTestLogType lbit,
     default: ;
     }
 
-  msg.log_type = lbit;
-  msg.n_strings = (string1 != NULL) + (string1 && string2);
-  msg.strings = astrings;
-  astrings[0] = (gchar*) string1;
-  astrings[1] = astrings[0] ? (gchar*) string2 : NULL;
-  msg.n_nums = n_args;
-  msg.nums = largs;
-  dbuffer = g_test_log_dump (&msg, &dbufferlen);
-  g_test_log_send (dbufferlen, dbuffer);
-  g_free (dbuffer);
+  /* Various non-default logging paths. */
+  if (g_test_log_send_needed ())
+    {
+      GTestLogMsg msg;
+      gchar *astrings[3] = { NULL, NULL, NULL };
+      guint8 *dbuffer;
+      guint32 dbufferlen;
+
+      msg.log_type = lbit;
+      msg.n_strings = (string1 != NULL) + (string1 && string2);
+      msg.strings = astrings;
+      astrings[0] = (gchar*) string1;
+      astrings[1] = astrings[0] ? (gchar*) string2 : NULL;
+      msg.n_nums = n_args;
+      msg.nums = largs;
+      dbuffer = g_test_log_dump (&msg, &dbufferlen);
+      g_test_log_send (dbufferlen, dbuffer);
+      g_free (dbuffer);
+    }
 
   switch (lbit)
     {
@@ -2407,7 +2411,7 @@ g_test_run (void)
 
   if (test_run_count > 0 && test_run_count == test_skipped_count)
     {
-      ret = 77;
+      ret = G_TEST_STATUS_SKIPPED;
       goto out;
     }
   else
@@ -2906,7 +2910,7 @@ g_test_suite_case_exists (GTestSuite *suite,
                           const char *test_path)
 {
   GSList *iter;
-  char *slash;
+  const char *slash;
   GTestCase *tc;
 
   test_path++;
@@ -3939,7 +3943,7 @@ gboolean
 g_test_trap_fork (guint64        usec_timeout,
                   GTestTrapFlags test_trap_flags)
 {
-#if defined(G_OS_UNIX) && !defined(__wasi__)
+#if defined(G_OS_UNIX) && (!defined(__APPLE__) || (!TARGET_OS_TV && !TARGET_OS_WATCH)) && !defined(__wasi__)
   int stdout_pipe[2] = { -1, -1 };
   int stderr_pipe[2] = { -1, -1 };
   int errsv;
@@ -4239,6 +4243,26 @@ g_test_trap_has_passed (void)
       WEXITSTATUS (test_trap_last_status) == 0);
 #else
   return test_trap_last_status == 0;
+#endif
+}
+
+/**
+ * g_test_trap_has_skipped:
+ *
+ * Checks the result of the last [func@GLib.test_trap_subprocess] call.
+ *
+ * Returns: true if the last test subprocess was skipped
+ *
+ * Since: 2.88
+ */
+gboolean
+g_test_trap_has_skipped (void)
+{
+#if defined(G_OS_UNIX) && !defined(__wasi__)
+  return (WIFEXITED (test_trap_last_status) &&
+      WEXITSTATUS (test_trap_last_status) == G_TEST_STATUS_SKIPPED);
+#else
+  return test_trap_last_status == G_TEST_STATUS_SKIPPED;
 #endif
 }
 
@@ -4648,7 +4672,7 @@ g_test_build_filename_va (GTestFileType  file_type,
  *
  * The data file should either have been distributed with the module
  * containing the test ([enum@GLib.TestFileType.dist] or built as part of the
- * buildcsystem of that module ([enum@GLib.TestFileType.built]).
+ * build system of that module ([enum@GLib.TestFileType.built]).
  *
  * In order for this function to work in srcdir != builddir situations,
  * the `G_TEST_SRCDIR` and `G_TEST_BUILDDIR` environment variables need

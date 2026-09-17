@@ -15,7 +15,7 @@ if host_system == 'windows'
 # dlopen() filepath must be of the form /path/libname.a(libname.so)
 elif host_system == 'aix'
   g_module_impl = 'G_MODULE_IMPL_AR'
-elif have_dlopen_dlsym and host_system != 'wasip1'
+elif have_dlopen_dlsym and not host_system.startswith('wasi')
   g_module_impl = 'G_MODULE_IMPL_DL'
 endif
 

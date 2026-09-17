@@ -256,8 +256,8 @@ struct _GBinding
 
   GBindingFlags flags;
 
-  guint source_notify; /* LOCK: unbind_lock */
-  guint target_notify; /* LOCK: unbind_lock */
+  unsigned long source_notify; /* LOCK: unbind_lock */
+  unsigned long target_notify; /* LOCK: unbind_lock */
   gboolean target_weak_notify_installed; /* LOCK: unbind_lock */
 
   /* a guard, to avoid loops */
@@ -910,7 +910,7 @@ g_binding_class_init (GBindingClass *klass)
    * The name of the property of #GBinding:source that should be used
    * as the source of the binding.
    *
-   * This should be in [canonical form][canonical-parameter-names] to get the
+   * This should be in [canonical form][class@GObject.ParamSpec#parameter-names] to get the
    * best performance.
    *
    * Since: 2.26
@@ -927,7 +927,7 @@ g_binding_class_init (GBindingClass *klass)
    * The name of the property of #GBinding:target that should be used
    * as the target of the binding.
    *
-   * This should be in [canonical form][canonical-parameter-names] to get the
+   * This should be in [canonical form][class@GObject.ParamSpec#parameter-names] to get the
    * best performance.
    *
    * Since: 2.26

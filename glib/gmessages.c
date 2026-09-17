@@ -1986,8 +1986,8 @@ g_log_structured_standard (const gchar    *log_domain,
 /**
  * g_log_set_writer_func:
  * @func: log writer function, which must not be `NULL`
- * @user_data: (closure func): user data to pass to @func
- * @user_data_free: (destroy func): function to free @user_data once it’s
+ * @user_data: user data to pass to @func
+ * @user_data_free: function to free @user_data once it’s
  *    finished with, if non-`NULL`
  *
  * Set a writer function which will be called to format and write out each log
@@ -2601,15 +2601,18 @@ g_log_writer_journald (GLogLevelFlags   log_level,
                        gpointer         user_data)
 {
 #ifdef ENABLE_JOURNAL_SENDV
+  /* don't alloca more than 1kB */
+  static const gsize max_alloca_fields = 1024 / (sizeof (struct iovec) * 5 + 32);
   const char equals = '=';
   const char newline = '\n';
   gsize i, k;
-  struct iovec *iov, *v;
-  char *buf;
+  struct iovec *iov, *v, *iov_alloc = NULL;
+  char *buf, *buf_alloc = NULL;
   gint retval;
 
   g_return_val_if_fail (fields != NULL, G_LOG_WRITER_UNHANDLED);
   g_return_val_if_fail (n_fields > 0, G_LOG_WRITER_UNHANDLED);
+  g_return_val_if_fail (n_fields <= G_MAXSIZE / (5 * sizeof (struct iovec)), G_LOG_WRITER_UNHANDLED);
 
   /* According to systemd.journal-fields(7), the journal allows fields in any
    * format (including arbitrary binary), but expects text fields to be UTF-8.
@@ -2618,8 +2621,16 @@ g_log_writer_journald (GLogLevelFlags   log_level,
    * locale’s character set.
    */
 
-  iov = g_alloca (sizeof (struct iovec) * 5 * n_fields);
-  buf = g_alloca (32 * n_fields);
+  if (G_UNLIKELY (n_fields > max_alloca_fields))
+    {
+      iov = iov_alloc = g_malloc_n (n_fields, sizeof (struct iovec) * 5);
+      buf = buf_alloc = g_malloc_n (n_fields, 32);
+    }
+  else
+    {
+      iov = g_alloca (sizeof (struct iovec) * 5 * n_fields);
+      buf = g_alloca (32 * n_fields);
+    }
 
   k = 0;
   v = iov;
@@ -2676,6 +2687,9 @@ g_log_writer_journald (GLogLevelFlags   log_level,
     }
 
   retval = journal_sendv (iov, v - iov);
+
+  g_clear_pointer (&iov_alloc, g_free);
+  g_clear_pointer (&buf_alloc, g_free);
 
   return retval == 0 ? G_LOG_WRITER_HANDLED : G_LOG_WRITER_UNHANDLED;
 #else
